@@ -44,6 +44,10 @@ int net_recv(unsigned char* data);
 unsigned char src_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // server address
 unsigned char dst_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // node address
 unsigned char dst_broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+unsigned char src_IP[4] = {0, 0, 0, 0};
+unsigned char src_SN[4] = {0, 0, 0, 0};
+unsigned char src_GW[4] = {0, 0, 0, 0};
+unsigned char dst_IP[4] = {0, 0, 0, 0};
 unsigned char* buffer;
 int s; // Socket variable
 int running = 1, c;
@@ -52,31 +56,42 @@ struct ifreq ifr;
 
 char userinput[160], command[20];
 
+unsigned int tint0, tint1, tint2, tint3;
+
 int main(int argc, char *argv[])
 {
-	printf("MinTCP v0.1 (2014 10 07)\n");
+	printf("MinTCP v0.1 (2014 10 08)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
 	/* first argument needs to be a NIC */
-	if (argc < 2)
+	if (argc < 4)
 	{
-		printf("Please specify an Ethernet device\n");
+		printf("Insufficient arguments!\n");
 		exit(0);
 	}
 
-        net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
+	/* Parse the IP and Subnet */
+	sscanf(argv[2], "%u.%u.%u.%u", &tint0, &tint1, &tint2, &tint3);
+	src_IP[0] = tint0;
+	src_IP[1] = tint1;
+	src_IP[2] = tint2;
+	src_IP[3] = tint3;
+	sscanf(argv[3], "%u.%u.%u.%u", &tint0, &tint1, &tint2, &tint3);
+	src_SN[0] = tint0;
+	src_SN[1] = tint1;
+	src_SN[2] = tint2;
+	src_SN[3] = tint3;
 
-	printf("This server is: %02X:%02X:%02X:%02X:%02X:%02X\n\n", src_MAC[0], src_MAC[1], src_MAC[2], src_MAC[3], src_MAC[4], src_MAC[5]);
+	net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
 
-	while(running == 1)
-	{
-		printf("> ");		// Print the prompt
+	printf("HW: %02X:%02X:%02X:%02X:%02X:%02X\n\n", src_MAC[0], src_MAC[1], src_MAC[2], src_MAC[3], src_MAC[4], src_MAC[5]);
+	printf("IP: %u.%u.%u.%u\n", src_IP[0], src_IP[1], src_IP[2], src_IP[3]);
+	printf("SN: %u.%u.%u.%u\n", src_SN[0], src_SN[1], src_SN[2], src_SN[3]);
 
-		memset(command, 0, 20);
-		fgets(userinput, 100, stdin);	// Get up to 100 chars from the keyboard
-		sscanf(userinput, "%s", command);	// Grab the first word in the string
-
-	}
+//	while(running == 1)
+//	{
+//
+//	}
 
 	printf("\n");
 	close(s);

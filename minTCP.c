@@ -50,13 +50,13 @@ unsigned char src_GW[4] = {0, 0, 0, 0};
 unsigned char dst_IP[4] = {0, 0, 0, 0};
 unsigned char* buffer;
 int s; // Socket variable
-int running = 1, c;
+int running = 1, c, retval;
 struct sockaddr_ll sa;
 struct ifreq ifr;
 
 char userinput[160], command[20];
 
-unsigned int tint0, tint1, tint2, tint3;
+unsigned int tint, tint0, tint1, tint2, tint3;
 
 int main(int argc, char *argv[])
 {
@@ -88,10 +88,50 @@ int main(int argc, char *argv[])
 	printf("IP: %u.%u.%u.%u\n", src_IP[0], src_IP[1], src_IP[2], src_IP[3]);
 	printf("SN: %u.%u.%u.%u\n", src_SN[0], src_SN[1], src_SN[2], src_SN[3]);
 
-//	while(running == 1)
-//	{
-//
-//	}
+	while(running == 1)
+	{
+		retval = net_recv(buffer);
+		if (retval > 0)
+		{
+			if (buffer[12] == 0x08 & buffer[13] == 0x06)
+			{
+				printf("\nARP - ");
+				if (buffer[21] == 0x01)
+				{
+					printf("Request - Who is %d.%d.%d.%d ?", buffer[38], buffer[39], buffer[40], buffer[41]);
+				}
+			}
+			else if (buffer[12] == 0x08 & buffer[13] == 0x00)
+			{
+				printf("\nIPv4 - ");
+				if(buffer[23] == 0x01)
+				{
+					printf("ICMP");
+				}
+				else if(buffer[23] == 0x06)
+				{
+					printf("TCP");
+				}
+				else if (buffer[23] == 0x11)
+				{
+					printf("UDP");
+				}
+				else
+				{
+					printf("Other");
+				}
+			}
+			else if (buffer[12] == 0x86 & buffer[13] == 0xDD)
+			{
+				printf("\nIPv6");
+			}
+//			printf("\nI saw %d bytes!\n", retval);
+//			for (tint=0; tint<retval; tint++)
+//			{
+//				printf("%02X", buffer[tint]);
+//			}
+		}
+	}
 
 	printf("\n");
 	close(s);
@@ -156,7 +196,7 @@ int net_init(char *interface)
 
 	buffer = (void*)malloc(ETH_FRAME_LEN);
 
-        /* We should now have a working port to send/recv raw frames */
+	/* We should now have a working port to send/recv raw frames */
 	return 0;
 }
 
@@ -174,10 +214,5 @@ int net_recv(unsigned char* data)
 {
 	int retval;
 	retval = recvfrom(s, data, ETH_FRAME_LEN, 0, 0, 0);
-//	printf("\nI saw %d bytes!\n", c);
-//	for (tint=0; tint<c; tint++)
-//	{
-//		printf("%02X", buffer[tint]);
-//	}
 	return retval;
 }

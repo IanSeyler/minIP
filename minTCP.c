@@ -49,6 +49,7 @@ unsigned char src_SN[4] = {0, 0, 0, 0};
 unsigned char src_GW[4] = {0, 0, 0, 0};
 unsigned char dst_IP[4] = {0, 0, 0, 0};
 unsigned char* buffer;
+unsigned char* tosend;
 int s; // Socket variable
 int running = 1, c, retval;
 struct sockaddr_ll sa;
@@ -84,6 +85,9 @@ int main(int argc, char *argv[])
 
 	net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
 
+	buffer = (void*)malloc(ETH_FRAME_LEN);
+	tosend = (void*)malloc(ETH_FRAME_LEN);
+
 	printf("HW: %02X:%02X:%02X:%02X:%02X:%02X\n\n", src_MAC[0], src_MAC[1], src_MAC[2], src_MAC[3], src_MAC[4], src_MAC[5]);
 	printf("IP: %u.%u.%u.%u\n", src_IP[0], src_IP[1], src_IP[2], src_IP[3]);
 	printf("SN: %u.%u.%u.%u\n", src_SN[0], src_SN[1], src_SN[2], src_SN[3]);
@@ -98,7 +102,26 @@ int main(int argc, char *argv[])
 				printf("\nARP - ");
 				if (buffer[21] == 0x01)
 				{
-					printf("Request - Who is %d.%d.%d.%d ?", buffer[38], buffer[39], buffer[40], buffer[41]);
+					printf("Request - Who is %d.%d.%d.%d? Tell %d.%d.%d.%d", buffer[38], buffer[39], buffer[40], buffer[41], buffer[28], buffer[29], buffer[30], buffer[31]);
+					if (buffer[38] == src_IP[0] & buffer[39] == src_IP[1] & buffer[40] == src_IP[2] & buffer[41] == src_IP[3])
+					{
+						printf(" - Looking for me?");
+						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
+						memcpy((void*)tosend, (void*)tosend+6, 6); // copy the incoming MAC to destination
+						memcpy((void*)tosend+6, (void*)src_MAC, 6); // copy the source MAC
+						memcpy((void*)tosend+32, (void*)tosend+22, 10); // copy sender+mac ID to target
+						tosend[21] = 0x02; // reply
+						memcpy((void*)tosend+22, (void*)src_MAC, 6); // copy the source MAC
+						tosend[28] = src_IP[0];
+						tosend[29] = src_IP[1];
+						tosend[30] = src_IP[2];
+						tosend[31] = src_IP[3];
+						net_send(tosend, 64);
+					}
+				}
+				else if (buffer[21] == 0x02)
+				{
+					printf("Response");
 				}
 			}
 			else if (buffer[12] == 0x08 & buffer[13] == 0x00)
@@ -107,6 +130,14 @@ int main(int argc, char *argv[])
 				if(buffer[23] == 0x01)
 				{
 					printf("ICMP");
+					if(buffer[34] == 0x08)
+					{
+						printf("Request");
+					}
+					else if (buffer[34] == 0x00)
+					{
+						printf("Reply");
+					}
 				}
 				else if(buffer[23] == 0x06)
 				{
@@ -193,8 +224,6 @@ int net_init(char *interface)
 	sa.sll_family = AF_PACKET;
 	sa.sll_ifindex = ifr.ifr_ifindex;
 	sa.sll_protocol = htons(ETH_P_ALL);
-
-	buffer = (void*)malloc(ETH_FRAME_LEN);
 
 	/* We should now have a working port to send/recv raw frames */
 	return 0;

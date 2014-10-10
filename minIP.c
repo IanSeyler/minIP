@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 						tosend[29] = src_IP[1];
 						tosend[30] = src_IP[2];
 						tosend[31] = src_IP[3];
-						net_send(tosend, 64);
+						net_send(tosend, 42);
 					}
 				}
 				else if (buffer[21] == 0x02)
@@ -129,10 +129,26 @@ int main(int argc, char *argv[])
 				printf("\nIPv4 - ");
 				if(buffer[23] == 0x01)
 				{
-					printf("ICMP");
+					printf("ICMP - ");
 					if(buffer[34] == 0x08)
 					{
 						printf("Request");
+						if (buffer[30] == src_IP[0] & buffer[31] == src_IP[1] & buffer[32] == src_IP[2] & buffer[33] == src_IP[3])
+						{
+							// Reply to the ping request
+							printf(" - Replying!");
+							memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
+							memcpy((void*)tosend, (void*)tosend+6, 6); // copy the incoming MAC to destination
+							memcpy((void*)tosend+6, (void*)src_MAC, 6); // copy the source MAC
+							memcpy((void*)tosend+30, (void*)tosend+26, 4); // copy the incoming IP to destination
+							tosend[26] = src_IP[0];
+							tosend[27] = src_IP[1];
+							tosend[28] = src_IP[2];
+							tosend[29] = src_IP[3];
+							tosend[34] = 0x00; // reply
+							tosend[36] = tosend[36] + 0x08;
+							net_send(tosend, retval); // send the response
+						}
 					}
 					else if (buffer[34] == 0x00)
 					{

@@ -50,6 +50,7 @@ unsigned char src_GW[4] = {0, 0, 0, 0};
 unsigned char dst_IP[4] = {0, 0, 0, 0};
 unsigned char* buffer;
 unsigned char* tosend;
+unsigned short tshort;
 int s; // Socket variable
 int running = 1, c, retval;
 struct sockaddr_ll sa;
@@ -88,7 +89,8 @@ int main(int argc, char *argv[])
 	buffer = (void*)malloc(ETH_FRAME_LEN);
 	tosend = (void*)malloc(ETH_FRAME_LEN);
 
-	printf("HW: %02X:%02X:%02X:%02X:%02X:%02X\n\n", src_MAC[0], src_MAC[1], src_MAC[2], src_MAC[3], src_MAC[4], src_MAC[5]);
+	printf("This host:\n");
+	printf("HW: %02X:%02X:%02X:%02X:%02X:%02X\n", src_MAC[0], src_MAC[1], src_MAC[2], src_MAC[3], src_MAC[4], src_MAC[5]);
 	printf("IP: %u.%u.%u.%u\n", src_IP[0], src_IP[1], src_IP[2], src_IP[3]);
 	printf("SN: %u.%u.%u.%u\n", src_SN[0], src_SN[1], src_SN[2], src_SN[3]);
 
@@ -97,6 +99,9 @@ int main(int argc, char *argv[])
 		retval = net_recv(buffer);
 		if (retval > 0)
 		{
+		//	memcpy(&tshort, &buffer[12], 2);
+		//	tshort = ntohs(tshort);
+		//	printf("\n%04X", tshort);
 			if (buffer[12] == 0x08 & buffer[13] == 0x06)
 			{
 				printf("\nARP - ");
@@ -147,12 +152,19 @@ int main(int argc, char *argv[])
 							tosend[29] = src_IP[3];
 							tosend[34] = 0x00; // reply
 							tosend[36] = tosend[36] + 0x08;
+							// tosend[36] = 0x00 // clear checksum
+							// tosend[37] = 0x00 // clear checksum
+							// tcheck = checksum(tosend, retval);
 							net_send(tosend, retval); // send the response
 						}
 					}
 					else if (buffer[34] == 0x00)
 					{
 						printf("Reply");
+					}
+					else
+					{
+						printf("Other");
 					}
 				}
 				else if(buffer[23] == 0x06)
@@ -172,11 +184,6 @@ int main(int argc, char *argv[])
 			{
 				printf("\nIPv6");
 			}
-//			printf("\nI saw %d bytes!\n", retval);
-//			for (tint=0; tint<retval; tint++)
-//			{
-//				printf("%02X", buffer[tint]);
-//			}
 		}
 	}
 

@@ -1,8 +1,8 @@
-/* MinTCP */
+/* minIP */
 /* Written by Ian Seyler */
 
-// Linux compile : gcc minTCP.c -o minTCP
-// Linux usage: ./minTCP eth1 192.168.0.99 255.255.255.0
+// Linux compile : gcc minIP.c -o minIP
+// Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0
 
 /*
 Ethernet packet structure

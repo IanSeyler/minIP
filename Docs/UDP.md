@@ -1,15 +1,16 @@
 
-IP
-==
+UDP
+====
 
-IP (Internet Protocol) is, well, how the internet communicates. This is also known as IPv4 or "Internet Classic".
+UDP (User Datagram Protocol)
 
-Anatomy of an IP packet
------------------------
 
-IP acts as a building block for more complex protocols.
+Anatomy of an UDP packet
+------------------------
 
-IP packet layout:
+UDP builds upon IP so you'll see familiar IP headers here.
+
+UDP packet layout:
 
 	Ethernet header:
 		0-5,   Destination MAC
@@ -22,8 +23,12 @@ IP packet layout:
 		18-19, Identification
 		20-21, Flags/Fragment Offset
 		22,    Time To Live (Usually 0x40)
-		23,    Protocol
+		23,    Protocol (0x11 for UDP)
 		24-25, Header Checksum
 		26-29, Source IP
 		30-33, Destination IP
-
+	UDP data:
+		34-35, Source Port
+		36-37, Destination Port
+		38-39, Length
+		40-41, Checksum (Can be set to 0x0000)

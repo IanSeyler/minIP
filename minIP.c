@@ -4,18 +4,6 @@
 // Linux compile : gcc minIP.c -o minIP
 // Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0
 
-/*
-Ethernet packet structure
-
- MAC Header
- 6 bytes - Destination MAC Address
- 6 bytes - Source MAC Address
- 2 bytes - EtherType
-
- Data
- 46-1498 bytes - Data
-*/
-
 /* Global Includes */
 #include <stdio.h>
 #include <stdlib.h>

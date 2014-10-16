@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 		{
 		//	memcpy(&tshort, &buffer[12], 2);
 		//	tshort = ntohs(tshort);
-		//	printf("\n%04X", tshort);
+		//	printf("\n%04X", (unsigned int)tshort);
 			if (buffer[12] == 0x08 & buffer[13] == 0x06)
 			{
 				printf("\nARP - ");
@@ -242,17 +242,18 @@ int net_init(char *interface)
 
 
 /* net_send - Send a raw Ethernet packet */
+// Wrapper for OS send function
+// Returns number of bytes sent
 int net_send(unsigned char* data, unsigned int bytes)
 {
-	// We should make sure the smallest packet sent is 64 bytes in total
 	return (sendto(s, data, bytes, 0, (struct sockaddr *)&sa, sizeof (sa)));
 }
 
 
 /* net_recv - Receive a raw Ethernet packet */
+// Wrapper for OS recv function
+// Returns number of bytes read
 int net_recv(unsigned char* data)
 {
-	int retval;
-	retval = recvfrom(s, data, ETH_FRAME_LEN, 0, 0, 0);
-	return retval;
+	return (recvfrom(s, data, ETH_FRAME_LEN, 0, 0, 0));
 }

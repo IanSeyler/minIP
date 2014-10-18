@@ -20,6 +20,7 @@
 #include <errno.h>
 
 /* Global functions */
+unsigned short checksum(unsigned char* data, unsigned int bytes);
 int net_init(char *interface);
 int net_send(unsigned char* data, unsigned int bytes);
 int net_recv(unsigned char* data);
@@ -87,10 +88,7 @@ int main(int argc, char *argv[])
 		retval = net_recv(buffer);
 		if (retval > 0)
 		{
-		//	memcpy(&tshort, &buffer[12], 2);
-		//	tshort = ntohs(tshort);
-		//	printf("\n%04X", (unsigned int)tshort);
-			if (buffer[12] == 0x08 & buffer[13] == 0x06)
+			if (ntohs(*(unsigned short *) &buffer[12]) == 0x0806)
 			{
 				printf("\nARP - ");
 				if (buffer[21] == 0x01)
@@ -117,7 +115,7 @@ int main(int argc, char *argv[])
 					printf("Response");
 				}
 			}
-			else if (buffer[12] == 0x08 & buffer[13] == 0x00)
+			else if (ntohs(*(unsigned short *) &buffer[12]) == 0x0800) // buffer[12] == 0x08 & buffer[13] == 0x00
 			{
 				printf("\nIPv4 - ");
 				if(buffer[23] == 0x01)
@@ -140,10 +138,17 @@ int main(int argc, char *argv[])
 							tosend[29] = src_IP[3];
 							tosend[34] = 0x00; // reply
 							tosend[36] = tosend[36] + 0x08;
-							// tosend[36] = 0x00 // clear checksum
-							// tosend[37] = 0x00 // clear checksum
-							// tcheck = checksum(tosend, retval);
+							printf(", chk1 %04X", ntohs(*(unsigned short *) &tosend[36]));
 							net_send(tosend, retval); // send the response
+
+							tosend[36] = 0x00; // clear checksum
+							tosend[37] = 0x00; // clear checksum
+							
+							// Calculate the checksum starting at the beginning of the ICMP data.
+							// Need to check (IP total length - IP header length) bytes
+							printf(", chk2 %04X", ntohs(checksum(&tosend[34], 64)));
+							//printf(", chk2 %04X", ntohs(*(unsigned short *) &tosend[36]));
+
 						}
 					}
 					else if (buffer[34] == 0x00)
@@ -168,7 +173,7 @@ int main(int argc, char *argv[])
 					printf("Other");
 				}
 			}
-			else if (buffer[12] == 0x86 & buffer[13] == 0xDD)
+			else if (ntohs(*(unsigned short *) &buffer[12]) == 0x86DD) // buffer[12] == 0x86 & buffer[13] == 0xDD
 			{
 				printf("\nIPv6");
 			}
@@ -178,6 +183,23 @@ int main(int argc, char *argv[])
 	printf("\n");
 	close(s);
 	return 0;
+}
+
+
+unsigned short checksum(unsigned char* data, unsigned int bytes)
+{
+	unsigned int i, sum = 0;
+
+	for (i=0; i<bytes-1; i+=2) // Add up the words
+		sum += *(unsigned short *) &data[i];
+
+	if (bytes & 1) // Add the left-over byte if there is one
+		sum += (unsigned char) data[i];
+	
+	while (sum >> 16) // Fold total to 16-bits
+		sum = (sum & 0xFFFF) + (sum >> 16);
+	
+	return ~sum; // Return 1's complement
 }
 
 

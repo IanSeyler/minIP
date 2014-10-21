@@ -1,6 +1,6 @@
 
 ARP
-===
+========
 
 ARP (Address Resolution Protocol) is used to find out what hardware addresses resolves to a specific IP address.
 
@@ -21,7 +21,7 @@ ARP to the rescue!
 Computer A first has to send a broadcast asking the network for the hardware address.
 
 Anatomy of an ARP request/reply
--------------------------------
+--------
 
 ARP request packet layout:
 
@@ -29,7 +29,7 @@ ARP request packet layout:
 		0-5,   Broadcast MAC (0xFFFFFFFFFFFF)
 		6-11,  Source MAC (The requestor)
 		12-13, Type ARP (0x0806)
-	ARP data:
+	ARP header:
 		14-15, Hardware type (0x0001 Ethernet)
 		16-17, Protocol type (0x0800 IP)
 		18,    Hardware size (0x06)
@@ -46,7 +46,7 @@ ARP reply packet layout:
 		0-5,   Destination MAC (The requestor)
 		6-11,  Source MAC (The replier)
 		12-13, Type ARP (0x0806)
-	ARP data:
+	ARP header:
 		14-15, Hardware type (0x0001 Ethernet)
 		16-17, Protocol type (0x0800 IP)
 		18,    Hardware size (0x06)
@@ -58,6 +58,6 @@ ARP reply packet layout:
 		38-41, Target IP (The requestor)
 
 ARP Spoofing
-------------
+--------
 
 Yes, it is also possible to cause network issues by sending bogus ARP replies. This is generally frowned upon by network admins.

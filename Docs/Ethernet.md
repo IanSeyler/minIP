@@ -6,8 +6,9 @@ Ethernet (refered to those in the industry as "IEEE 802.3") is the physical conn
 
 An Ethernet frame consists of the following:
 
-	Destination address (6 bytes)
-	Source address (6 bytes)
-	EtherType/Length (2 bytes)
-	Data (46 - 1500 bytes)
-
+	Ethernet header:
+		0-5,   Destination MAC
+		6-11,  Source MAC
+		12-13, EtherType/Length
+	Ethernet data:
+		14-1500

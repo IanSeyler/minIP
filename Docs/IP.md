@@ -1,11 +1,11 @@
 
 IP
-==
+========
 
 IP (Internet Protocol) is, well, how the internet communicates. This is also known as IPv4 or "Internet Classic".
 
 Anatomy of an IP packet
------------------------
+--------
 
 IP acts as a building block for more complex protocols.
 
@@ -15,7 +15,7 @@ IP packet layout:
 		0-5,   Destination MAC
 		6-11,  Source MAC
 		12-13, Type IP (0x0800)
-	IP data:
+	IP header:
 		14,    Version/Header Length (Usually 0x45)
 		15,    Differentiated Services Field (0x00)
 		16-17, Total Length

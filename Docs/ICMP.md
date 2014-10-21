@@ -1,12 +1,12 @@
 
 ICMP
-====
+========
 
 ICMP (Internet Control Message Protocol)
 
 
 Anatomy of an ICMP request/reply
---------------------------------
+--------
 
 ICMP builds upon IP so you'll see familiar IP headers here.
 
@@ -16,7 +16,7 @@ ICMP ping request packet layout:
 		0-5,   Destination MAC
 		6-11,  Source MAC
 		12-13, Type IP (0x0800)
-	IP data:
+	IP header:
 		14,    Version/Header Length (Usually 0x45)
 		15,    Differentiated Services Field (0x00)
 		16-17, Total Length
@@ -27,7 +27,7 @@ ICMP ping request packet layout:
 		24-25, Header Checksum
 		26-29, Source IP
 		30-33, Destination IP
-	ICMP data:
+	ICMP header:
 		34,    Type (0x08, Ping request)
 		35,    Code
 		36-37, Checksum
@@ -42,7 +42,7 @@ ICMP ping reply packet layout:
 		0-5,   Destination MAC
 		6-11,  Source MAC
 		12-13, Type IP (0x0800)
-	IP data:
+	IP header:
 		14,    Version/Header Length
 		15,    Differentiated Services Field
 		16-17, Total Length
@@ -53,7 +53,7 @@ ICMP ping reply packet layout:
 		24-25, Header Checksum
 		26-29, Source IP
 		30-33, Destination IP
-	ICMP data:
+	ICMP header:
 		34,    Type (0x00, Ping reply)
 		35,    Code
 		36-37, Checksum

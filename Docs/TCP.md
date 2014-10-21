@@ -1,12 +1,12 @@
 
 TCP
-====
+========
 
 TCP (Transmission Control Protocol)
 
 
 Anatomy of an TCP packet
-------------------------
+--------
 
 TCP builds upon IP so you'll see familiar IP headers here.
 
@@ -16,7 +16,7 @@ TCP packet layout:
 		0-5,   Destination MAC
 		6-11,  Source MAC
 		12-13, Type IP (0x0800)
-	IP data:
+	IP header:
 		14,    Version/Header Length (Usually 0x45)
 		15,    Differentiated Services Field (0x00)
 		16-17, Total Length
@@ -27,7 +27,7 @@ TCP packet layout:
 		24-25, Header Checksum
 		26-29, Source IP
 		30-33, Destination IP
-	TCP data:
+	TCP header:
 		34-35, Source Port
 		36-37, Destination Port
 		38-41, Sequence Number

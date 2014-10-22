@@ -45,7 +45,21 @@ int running = 1, c, retval;
 struct sockaddr_ll sa;
 struct ifreq ifr;
 
-char userinput[160], command[20];
+/* Default HTTP page with HTTP headers */
+char webpage[] = 
+"HTTP/1.0 200 OK\n"
+"Server: BareMetal (http://www.returninfinity.com)\n"
+"Content-type: text/html\n"
+"\n"
+"<!DOCTYPE html>\n"
+"<html>\n"
+"<head>\n"
+"<title>Hello world</title>\n"
+"</head>\n"
+"<body>\n"
+"Hello World!\n"
+"</body>\n"
+"</html>\n";
 
 unsigned int tint, tint0, tint1, tint2, tint3;
 

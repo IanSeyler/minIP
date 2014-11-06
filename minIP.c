@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
 	if (argc < 4)
 	{
 		printf("Insufficient arguments!\n");
+		printf("%s interface ip subnet\n", argv[0]);
 		exit(0);
 	}
 
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
 				if (buffer[21] == 0x01)
 				{
 					printf("Request - Who is %d.%d.%d.%d? Tell %d.%d.%d.%d", buffer[38], buffer[39], buffer[40], buffer[41], buffer[28], buffer[29], buffer[30], buffer[31]);
-					if (buffer[38] == src_IP[0] & buffer[39] == src_IP[1] & buffer[40] == src_IP[2] & buffer[41] == src_IP[3])
+					if ((buffer[38] == src_IP[0]) & (buffer[39] == src_IP[1]) & (buffer[40] == src_IP[2]) & (buffer[41] == src_IP[3]))
 					{
 						printf(" - Looking for me?");
 						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
@@ -138,7 +139,7 @@ int main(int argc, char *argv[])
 					if(buffer[34] == 0x08)
 					{
 						printf("Request");
-						if (buffer[30] == src_IP[0] & buffer[31] == src_IP[1] & buffer[32] == src_IP[2] & buffer[33] == src_IP[3])
+						if ((buffer[30] == src_IP[0]) & (buffer[31] == src_IP[1]) & (buffer[32] == src_IP[2]) & (buffer[33] == src_IP[3]))
 						{
 							// Reply to the ping request
 							printf(" - Replying!");

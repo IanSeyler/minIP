@@ -39,7 +39,7 @@ unsigned char src_GW[4] = {0, 0, 0, 0};
 unsigned char dst_IP[4] = {0, 0, 0, 0};
 unsigned char* buffer;
 unsigned char* tosend;
-unsigned short tshort;
+unsigned short tshort, checksumval;
 int s; // Socket variable
 int running = 1, c, retval;
 struct sockaddr_ll sa;
@@ -146,23 +146,17 @@ int main(int argc, char *argv[])
 							memcpy((void*)tosend, (void*)tosend+6, 6); // copy the incoming MAC to destination
 							memcpy((void*)tosend+6, (void*)src_MAC, 6); // copy the source MAC
 							memcpy((void*)tosend+30, (void*)tosend+26, 4); // copy the incoming IP to destination
+							memcpy((void*)&tshort, (void*)tosend+16, 2); // copy the packet length
 							tosend[26] = src_IP[0];
 							tosend[27] = src_IP[1];
 							tosend[28] = src_IP[2];
 							tosend[29] = src_IP[3];
 							tosend[34] = 0x00; // reply
-							tosend[36] = tosend[36] + 0x08;
-							printf(", chk1 %04X", ntohs(*(unsigned short *) &tosend[36]));
-							net_send(tosend, retval); // send the response
-
 							tosend[36] = 0x00; // clear checksum
 							tosend[37] = 0x00; // clear checksum
-							
-							// Calculate the checksum starting at the beginning of the ICMP data.
-							// Need to check (IP total length - IP header length) bytes
-							printf(", chk2 %04X", ntohs(checksum(&tosend[34], 64)));
-							//printf(", chk2 %04X", ntohs(*(unsigned short *) &tosend[36]));
-
+							checksumval = checksum(&tosend[34], ntohs(tshort)-20);
+							memcpy((void*)tosend+36, (void*)&checksumval, 2);
+							net_send(tosend, retval); // send the response
 						}
 					}
 					else if (buffer[34] == 0x00)

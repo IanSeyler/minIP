@@ -14,7 +14,7 @@ IPv6 packet layout:
 	Ethernet header:
 		0-5,   Destination MAC
 		6-11,  Source MAC
-		12-13, Type IP (0x0800)
+		12-13, Type IPv6 (0x86DD)
 	IPv6 header:
 		14-17, Version/Class/Flow Label
 			Bits 0-3		Version, set to 6 (0110)

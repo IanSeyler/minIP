@@ -36,3 +36,15 @@ TCP packet layout:
 		48-49, Window Size
 		50-51, Checksum
 		52-53, Urgent Pointer
+
+
+The TCP Handshake
+------
+
+Its as easy as 1-2-3! Really!
+
+1. SYN
+2. SYN-ACK
+3. ACK
+
+The client wants to connect to a server and sends a SYN (SYNchronize) packet. The server then responds with a SYN-ACK (SYNchronize-ACKnowledge) packet. The client sends the server a ACK (ACKnowledge) packet.

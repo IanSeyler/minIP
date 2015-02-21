@@ -65,7 +65,7 @@ unsigned int tint, tint0, tint1, tint2, tint3;
 
 int main(int argc, char *argv[])
 {
-	printf("MinTCP v0.1 (2014 10 08)\n");
+	printf("minIP v0.1 (2014 10 08)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
 	/* first argument needs to be a NIC */

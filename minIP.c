@@ -185,10 +185,11 @@ int main(int argc, char *argv[])
 						tosend[47] |= 0x10; // set TCP ACK
 						tosend[50] = 0x00; // clear TCP checksum
 						tosend[51] = 0x00; // clear TCP checksum
-						tosend[retval] = 0x00;
-						tosend[retval+1] = 16;
-						tosend[retval+2] = 0;
-						tosend[retval+3] = 34;
+						 // Build the rest of the TCP pseudo-header
+						tosend[retval] = 0; // Reserved
+						tosend[retval+1] = 6; // Protocol
+						tosend[retval+2] = 0; // TCP length (Header + Data)
+						tosend[retval+3] = 44;
 						checksumval = checksum(&tosend[26], retval-26+4); // Start checksum at Source IP so we only need to build the tail of the pseudo header
 						memcpy((void*)tosend+50, (void*)&checksumval, 2);
 						net_send(tosend, retval);

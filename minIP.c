@@ -31,6 +31,8 @@ u16 checksum(u8* data, u16 bytes);
 int net_init(char *interface);
 int net_send(unsigned char* data, unsigned int bytes);
 int net_recv(unsigned char* data);
+u16 swap16(u16 in);
+u32 swap32(u32 in);
 
 /* Global defines */
 #undef ETH_FRAME_LEN
@@ -305,6 +307,15 @@ int net_init(char *interface)
 	sa.sll_ifindex = ifr.ifr_ifindex;
 	sa.sll_protocol = htons(ETH_P_ALL);
 
+	int test_var = 1;
+	unsigned char *test_endian = (unsigned char*)&test_var;
+
+ 	if (test_endian[0] == 0x00)
+	{
+		printf("Big Endian! This program will fail horribly.");
+		return -1;
+	}
+
 	/* We should now have a working port to send/recv raw frames */
 	return 0;
 }
@@ -326,3 +337,24 @@ int net_recv(unsigned char* data)
 {
 	return (recvfrom(s, data, ETH_FRAME_LEN, 0, 0, 0));
 }
+
+
+/* swap16 - Change endianness on a 16-bit value */
+// x86-64 uses little-endian while IP uses big-endian
+u16 swap16(u16 in)
+{
+	u16 out = in<<8 | ((in&0xff00)>>8);
+	return out;
+}
+
+
+/* swap32 - Change endianness on a 32-bit value */
+// x86-64 uses little-endian while IP uses big-endian
+u32 swap32(u32 in)
+{
+	u32 out = in<<24 | ((in&0xff00)<<8) | ((in&0xff0000)>>8) | ((in&0xff000000)>>24);
+	return out;
+}
+
+
+/* EOF */

@@ -2,10 +2,11 @@
 /* Written by Ian Seyler */
 
 // Linux compile : gcc minIP.c -o minIP
-// Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0
+// Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
 
 /* Global Includes */
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -19,8 +20,14 @@
 #include <fcntl.h>
 #include <errno.h>
 
+/* Typedefs */
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
 /* Global functions */
-unsigned short checksum(unsigned char* data, unsigned int bytes);
+u16 checksum(u8* data, u16 bytes);
 int net_init(char *interface);
 int net_send(unsigned char* data, unsigned int bytes);
 int net_recv(unsigned char* data);
@@ -46,7 +53,7 @@ struct sockaddr_ll sa;
 struct ifreq ifr;
 
 /* Default HTTP page with HTTP headers */
-char webpage[] = 
+char webpage[] =
 "HTTP/1.0 200 OK\n"
 "Server: BareMetal (http://www.returninfinity.com)\n"
 "Content-type: text/html\n"
@@ -69,10 +76,10 @@ int main(int argc, char *argv[])
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
 	/* first argument needs to be a NIC */
-	if (argc < 4)
+	if (argc < 5)
 	{
 		printf("Insufficient arguments!\n");
-		printf("%s interface ip subnet\n", argv[0]);
+		printf("%s interface ip subnet gw\n", argv[0]);
 		exit(0);
 	}
 
@@ -87,6 +94,11 @@ int main(int argc, char *argv[])
 	src_SN[1] = tint1;
 	src_SN[2] = tint2;
 	src_SN[3] = tint3;
+	sscanf(argv[4], "%u.%u.%u.%u", &tint0, &tint1, &tint2, &tint3);
+	src_GW[0] = tint0;
+	src_GW[1] = tint1;
+	src_GW[2] = tint2;
+	src_GW[3] = tint3;
 
 	net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
 
@@ -221,19 +233,19 @@ int main(int argc, char *argv[])
 }
 
 
-unsigned short checksum(unsigned char* data, unsigned int bytes)
+u16 checksum(u8* data, u16 bytes)
 {
-	unsigned int i, sum = 0;
+	u32 i, sum = 0;
 
 	for (i=0; i<bytes-1; i+=2) // Add up the words
-		sum += *(unsigned short *) &data[i];
+		sum += *(u16 *) &data[i];
 
 	if (bytes & 1) // Add the left-over byte if there is one
-		sum += (unsigned char) data[i];
-	
+		sum += (u8) data[i];
+
 	while (sum >> 16) // Fold total to 16-bits
 		sum = (sum & 0xFFFF) + (sum >> 16);
-	
+
 	return ~sum; // Return 1's complement
 }
 

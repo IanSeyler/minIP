@@ -54,6 +54,38 @@ int running = 1, c, retval;
 struct sockaddr_ll sa;
 struct ifreq ifr;
 
+/* Global structs */
+typedef struct eth_header {
+	u8 dest_mac[6];
+	u8 src_mac[6];
+	u16 type;
+} eth_header; // 14 bytes
+typedef struct arp_packet {
+	eth_header header;
+	u16 hardware_type;
+	u16 protocol;
+	u8 hardware_size;
+	u8 protocol_size;
+	u16 opcode;
+	u8 sender_mac[6];
+	u8 sender_ip[4];
+	u8 target_mac[6];
+	u8 target_ip[4];
+} arp_packet; // 28 bytes
+typedef struct ipv4_packet {
+	eth_header header;
+	u8 version;
+	u8 dsf;
+	u16 total_length;
+	u16 id;
+	u16 flags;
+	u8 ttl;
+	u8 protocol;
+	u16 checksum;
+	u32 src_ip;
+	u32 dest_ip;
+} ipv4_packet; // Usually 20 bytes
+
 /* Default HTTP page with HTTP headers */
 char webpage[] =
 "HTTP/1.0 200 OK\n"
@@ -115,24 +147,33 @@ int main(int argc, char *argv[])
 	while(running == 1)
 	{
 		retval = net_recv(buffer);
-		if (retval > 0)
+		eth_header* rx = (eth_header*)buffer;
+
+		if (retval > 0) // Make sure we received a packet
 		{
-			if (ntohs(*(unsigned short *) &buffer[12]) == 0x0806) // ARP
+			if (swap16(rx->type) == 0x0806) // ARP
 			{
 			//	printf("\nARP - ");
-				if (buffer[21] == 0x01)
+				arp_packet* rx_arp = (arp_packet*)buffer;
+				if (swap16(rx_arp->opcode) == 1)
 				{
 			//		printf("Request - Who is %d.%d.%d.%d? Tell %d.%d.%d.%d", buffer[38], buffer[39], buffer[40], buffer[41], buffer[28], buffer[29], buffer[30], buffer[31]);
-					if ((buffer[38] == src_IP[0]) & (buffer[39] == src_IP[1]) & (buffer[40] == src_IP[2]) & (buffer[41] == src_IP[3]))
+					if (*(u32*)rx_arp->target_ip == *(u32*)src_IP)
 					{
 			//			printf(" - Looking for me?");
-						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
-						memcpy((void*)tosend, (void*)buffer+6, 6); // copy the incoming MAC to destination
-						memcpy((void*)tosend+6, (void*)src_MAC, 6); // copy the source MAC
-						memcpy((void*)tosend+32, (void*)buffer+22, 10); // copy sender+mac ID to target
-						tosend[21] = 0x02; // ARP reply
-						memcpy((void*)tosend+22, (void*)src_MAC, 6); // copy the source MAC
-						memcpy((void*)tosend+28, (void*)buffer+38, 4); // copy IP address
+						arp_packet* tx_arp = (arp_packet*)tosend;
+						memcpy(tx_arp->header.dest_mac, rx_arp->sender_mac, 6);
+						memcpy(tx_arp->header.src_mac, src_MAC, 6);
+						tx_arp->header.type = swap16(0x0806);
+						tx_arp->hardware_type = swap16(1);
+						tx_arp->protocol = swap16(0x0800);
+						tx_arp->hardware_size = 6;
+						tx_arp->protocol_size = 4;
+						tx_arp->opcode = swap16(2);
+						memcpy(tx_arp->sender_mac, src_MAC, 6);
+						memcpy(tx_arp->sender_ip, rx_arp->target_ip, 4);
+						memcpy(tx_arp->target_mac, rx_arp->sender_mac, 6);
+						memcpy(tx_arp->target_ip, rx_arp->sender_ip, 4);
 						net_send(tosend, 42);
 					}
 				}
@@ -141,19 +182,19 @@ int main(int argc, char *argv[])
 			//		printf("Response");
 				}
 			}
-			else if (ntohs(*(unsigned short *) &buffer[12]) == 0x0800) // buffer[12] == 0x08 & buffer[13] == 0x00
+			else if (swap16(rx->type) == 0x0800) // IPv4
 			{
-				printf("\nIPv4 - ");
+			//	printf("\nIPv4 - ");
 				if(buffer[23] == 0x01)
 				{
-					printf("ICMP - ");
+			//		printf("ICMP - ");
 					if(buffer[34] == 0x08)
 					{
-						printf("Request");
+			//			printf("Request");
 						if ((buffer[30] == src_IP[0]) & (buffer[31] == src_IP[1]) & (buffer[32] == src_IP[2]) & (buffer[33] == src_IP[3]))
 						{
 							// Reply to the ping request
-							printf(" - Replying!");
+			//				printf(" - Replying!");
 							memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
 							memcpy((void*)tosend, (void*)buffer+6, 6); // copy the incoming MAC to destination
 							memcpy((void*)tosend+6, (void*)buffer, 6); // copy the source MAC
@@ -170,19 +211,19 @@ int main(int argc, char *argv[])
 					}
 					else if (buffer[34] == 0x00)
 					{
-						printf("Reply");
+			//			printf("Reply");
 					}
 					else
 					{
-						printf("Other");
+			//			printf("Other");
 					}
 				}
 				else if(buffer[23] == 0x06)
 				{
-					printf("TCP");
+			//		printf("TCP");
 					if ((buffer[47] & 0x02) == 0x02)
 					{
-						printf(" - SYN");
+			//			printf(" - SYN");
 						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
 						memcpy((void*)tosend, (void*)buffer+6, 6); // copy the incoming MAC to destination
 						memcpy((void*)tosend+6, (void*)buffer, 6); // copy the source MAC
@@ -210,21 +251,21 @@ int main(int argc, char *argv[])
 					}
 					else if ((buffer[47] & 0x10) == 0x10)
 					{
-						printf(" - ACK");
+			//			printf(" - ACK");
 					}
 				}
 				else if (buffer[23] == 0x11)
 				{
-					printf("UDP");
+			//		printf("UDP");
 				}
 				else
 				{
-					printf("Other");
+			//		printf("Other");
 				}
 			}
-			else if (ntohs(*(unsigned short *) &buffer[12]) == 0x86DD) // buffer[12] == 0x86 & buffer[13] == 0xDD
+			else if (swap16(rx->type) == 0x86DD) // IPv6
 			{
-				printf("\nIPv6");
+			//	printf("\nIPv6");
 			}
 		}
 	}

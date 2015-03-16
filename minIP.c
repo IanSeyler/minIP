@@ -37,6 +37,15 @@ u32 swap32(u32 in);
 /* Global defines */
 #undef ETH_FRAME_LEN
 #define ETH_FRAME_LEN 1518
+#define ETHERTYPE_ARP 0x0806
+#define ETHERTYPE_IPv4 0x0800
+#define ARP_REQUEST 1
+#define ARP_REPLY 2
+#define PROTOCOL_IP_ICMP 1
+#define PROTOCOL_IP_TCP 6
+#define PROTOCOL_IP_UDP 11
+#define ICMP_ECHO_REPLY 0
+#define ICMP_ECHO_REQUEST 8
 
 /* Global variables */
 unsigned char src_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // server address
@@ -84,7 +93,7 @@ typedef struct ipv4_packet {
 	u16 checksum;
 	u32 src_ip;
 	u32 dest_ip;
-} ipv4_packet; // Usually 20 bytes
+} ipv4_packet; // 20 bytes since we don't support options
 
 /* Default HTTP page with HTTP headers */
 char webpage[] =
@@ -151,25 +160,27 @@ int main(int argc, char *argv[])
 
 		if (retval > 0) // Make sure we received a packet
 		{
-			if (swap16(rx->type) == 0x0806) // ARP
+			if (swap16(rx->type) == ETHERTYPE_ARP)
 			{
 			//	printf("\nARP - ");
 				arp_packet* rx_arp = (arp_packet*)buffer;
-				if (swap16(rx_arp->opcode) == 1)
+				if (swap16(rx_arp->opcode) == ARP_REQUEST)
 				{
 			//		printf("Request - Who is %d.%d.%d.%d? Tell %d.%d.%d.%d", buffer[38], buffer[39], buffer[40], buffer[41], buffer[28], buffer[29], buffer[30], buffer[31]);
 					if (*(u32*)rx_arp->target_ip == *(u32*)src_IP)
 					{
 			//			printf(" - Looking for me?");
 						arp_packet* tx_arp = (arp_packet*)tosend;
+						// Ethernet
 						memcpy(tx_arp->header.dest_mac, rx_arp->sender_mac, 6);
 						memcpy(tx_arp->header.src_mac, src_MAC, 6);
-						tx_arp->header.type = swap16(0x0806);
-						tx_arp->hardware_type = swap16(1);
-						tx_arp->protocol = swap16(0x0800);
+						tx_arp->header.type = swap16(ETHERTYPE_ARP);
+						// ARP
+						tx_arp->hardware_type = swap16(1); // Ethernet
+						tx_arp->protocol = swap16(ETHERTYPE_IPv4);
 						tx_arp->hardware_size = 6;
 						tx_arp->protocol_size = 4;
-						tx_arp->opcode = swap16(2);
+						tx_arp->opcode = swap16(ARP_REPLY);
 						memcpy(tx_arp->sender_mac, src_MAC, 6);
 						memcpy(tx_arp->sender_ip, rx_arp->target_ip, 4);
 						memcpy(tx_arp->target_mac, rx_arp->sender_mac, 6);
@@ -177,18 +188,18 @@ int main(int argc, char *argv[])
 						net_send(tosend, 42);
 					}
 				}
-				else if (buffer[21] == 0x02)
+				else if (buffer[21] == ARP_REPLY)
 				{
 			//		printf("Response");
 				}
 			}
-			else if (swap16(rx->type) == 0x0800) // IPv4
+			else if (swap16(rx->type) == ETHERTYPE_IPv4)
 			{
 			//	printf("\nIPv4 - ");
-				if(buffer[23] == 0x01)
+				if(buffer[23] == PROTOCOL_IP_ICMP)
 				{
 			//		printf("ICMP - ");
-					if(buffer[34] == 0x08)
+					if(buffer[34] == ICMP_ECHO_REQUEST)
 					{
 			//			printf("Request");
 						if ((buffer[30] == src_IP[0]) & (buffer[31] == src_IP[1]) & (buffer[32] == src_IP[2]) & (buffer[33] == src_IP[3]))
@@ -201,7 +212,7 @@ int main(int argc, char *argv[])
 							memcpy((void*)tosend+30, (void*)buffer+26, 4); // copy the incoming IP to destination
 							memcpy((void*)tosend+26, (void*)buffer+30, 4); // copy the destination IP to source
 							// No IP header checksum calc since the header contents were only shifted around
-							tosend[34] = 0x00; // ICMP type = reply
+							tosend[34] = ICMP_ECHO_REPLY;
 							tosend[36] = 0x00; // clear ICMP checksum
 							tosend[37] = 0x00; // clear ICMP checksum
 							checksumval = checksum(&tosend[34], retval-14-20); // Frame length - MAC header - IP header
@@ -218,7 +229,7 @@ int main(int argc, char *argv[])
 			//			printf("Other");
 					}
 				}
-				else if(buffer[23] == 0x06)
+				else if(buffer[23] == PROTOCOL_IP_TCP)
 				{
 			//		printf("TCP");
 					if ((buffer[47] & 0x02) == 0x02)
@@ -254,7 +265,7 @@ int main(int argc, char *argv[])
 			//			printf(" - ACK");
 					}
 				}
-				else if (buffer[23] == 0x11)
+				else if (buffer[23] == PROTOCOL_IP_UDP)
 				{
 			//		printf("UDP");
 				}

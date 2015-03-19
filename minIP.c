@@ -102,7 +102,7 @@ typedef struct icmp_packet {
 	u16 id;
 	u16 sequence;
 	u16 timestamp;
-	u8 data;
+	u8 data[2];
 } icmp_packet; // Variable depending on data received
 
 /* Default HTTP page with HTTP headers */
@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
 
 		if (retval > 0) // Make sure we received a packet
 		{
+			memset(tosend, 0, ETH_FRAME_LEN); // clear the send buffer
 			if (swap16(rx->type) == ETHERTYPE_ARP)
 			{
 				arp_packet* rx_arp = (arp_packet*)buffer;
@@ -178,7 +179,6 @@ int main(int argc, char *argv[])
 			//		printf("ARP Request - Who is %d.%d.%d.%d? Tell %d.%d.%d.%d", buffer[38], buffer[39], buffer[40], buffer[41], buffer[28], buffer[29], buffer[30], buffer[31]);
 					if (*(u32*)rx_arp->target_ip == *(u32*)src_IP)
 					{
-			//			printf(" - Looking for me?");
 						arp_packet* tx_arp = (arp_packet*)tosend;
 						// Ethernet
 						memcpy(tx_arp->ethernet.dest_mac, rx_arp->sender_mac, 6);
@@ -214,23 +214,36 @@ int main(int argc, char *argv[])
 					if(rx_icmp->type == ICMP_ECHO_REQUEST)
 					{
 			//			printf("Request");
-					//	if ((buffer[30] == src_IP[0]) & (buffer[31] == src_IP[1]) & (buffer[32] == src_IP[2]) & (buffer[33] == src_IP[3]))
 						if (*(u32*)rx_icmp->ipv4.dest_ip == *(u32*)src_IP)
 						{
 							// Reply to the ping request
-			//				printf(" - Replying!");
-							memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
-							memcpy((void*)tosend, (void*)buffer+6, 6); // copy the incoming MAC to destination
-							memcpy((void*)tosend+6, (void*)buffer, 6); // copy the source MAC
-							memcpy((void*)tosend+30, (void*)buffer+26, 4); // copy the incoming IP to destination
-							memcpy((void*)tosend+26, (void*)buffer+30, 4); // copy the destination IP to source
-							// No IP header checksum calc since the header contents were only shifted around
-							tosend[34] = ICMP_ECHO_REPLY;
-							tosend[36] = 0x00; // clear ICMP checksum
-							tosend[37] = 0x00; // clear ICMP checksum
-							checksumval = checksum(&tosend[34], retval-14-20); // Frame length - MAC header - IP header
-							memcpy((void*)tosend+36, (void*)&checksumval, 2);
-							net_send(tosend, retval); // send the response
+							icmp_packet* tx_icmp = (icmp_packet*)tosend;
+							// Ethernet
+							memcpy(tx_icmp->ipv4.ethernet.dest_mac, rx_icmp->ipv4.ethernet.src_mac, 6);
+							memcpy(tx_icmp->ipv4.ethernet.src_mac, src_MAC, 6);
+							tx_icmp->ipv4.ethernet.type = swap16(ETHERTYPE_IPv4);
+							// IPv4
+							tx_icmp->ipv4.version = rx_icmp->ipv4.version;
+							tx_icmp->ipv4.dsf = rx_icmp->ipv4.dsf;
+							tx_icmp->ipv4.total_length = rx_icmp->ipv4.total_length;
+							tx_icmp->ipv4.id = rx_icmp->ipv4.id;
+							tx_icmp->ipv4.flags = rx_icmp->ipv4.flags;
+							tx_icmp->ipv4.ttl = rx_icmp->ipv4.ttl;
+							tx_icmp->ipv4.protocol = rx_icmp->ipv4.protocol;
+							tx_icmp->ipv4.checksum = rx_icmp->ipv4.checksum; // No need to recalc checksum
+							memcpy(tx_icmp->ipv4.src_ip, rx_icmp->ipv4.dest_ip, 4);
+							memcpy(tx_icmp->ipv4.dest_ip, rx_icmp->ipv4.src_ip, 4);
+							// ICMP
+							tx_icmp->type = ICMP_ECHO_REPLY;
+							tx_icmp->code = rx_icmp->code;
+							tx_icmp->checksum = 0;
+							tx_icmp->id = rx_icmp->id;
+							tx_icmp->sequence = rx_icmp->sequence;
+							tx_icmp->timestamp = rx_icmp->timestamp;
+							memcpy (tx_icmp->data, rx_icmp->data, (swap16(rx_icmp->ipv4.total_length)-20-16+8));
+							tx_icmp->checksum = checksum(&tosend[34], retval-14-20); // Frame length - MAC header - IPv4 header
+							// Send the reply
+							net_send(tosend, retval);
 						}
 					}
 					else if (rx_icmp->type == ICMP_ECHO_REPLY)

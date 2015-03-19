@@ -39,6 +39,7 @@ u32 swap32(u32 in);
 #define ETH_FRAME_LEN 1518
 #define ETHERTYPE_ARP 0x0806
 #define ETHERTYPE_IPv4 0x0800
+#define ETHERTYPE_IPv6 0x86DD
 #define ARP_REQUEST 1
 #define ARP_REPLY 2
 #define PROTOCOL_IP_ICMP 1
@@ -48,13 +49,13 @@ u32 swap32(u32 in);
 #define ICMP_ECHO_REQUEST 8
 
 /* Global variables */
-unsigned char src_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // server address
-unsigned char dst_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // node address
-unsigned char dst_broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-unsigned char src_IP[4] = {0, 0, 0, 0};
-unsigned char src_SN[4] = {0, 0, 0, 0};
-unsigned char src_GW[4] = {0, 0, 0, 0};
-unsigned char dst_IP[4] = {0, 0, 0, 0};
+u8 src_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+u8 dst_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+u8 dst_broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+u8 src_IP[4] = {0, 0, 0, 0};
+u8 src_SN[4] = {0, 0, 0, 0};
+u8 src_GW[4] = {0, 0, 0, 0};
+u8 dst_IP[4] = {0, 0, 0, 0};
 unsigned char* buffer;
 unsigned char* tosend;
 unsigned short tshort, checksumval;
@@ -103,7 +104,29 @@ typedef struct icmp_packet {
 	u16 sequence;
 	u16 timestamp;
 	u8 data[2];
-} icmp_packet; // Variable depending on data received
+} icmp_packet;
+typedef struct udp_packet {
+	ipv4_packet ipv4;
+	u16 src_port;
+	u16 dest_port;
+	u16 length;
+	u16 checksum;
+	u8 data[2];
+} udp_packet;
+typedef struct tcp_packet {
+	ipv4_packet ipv4;
+	u16 src_port;
+	u16 dest_port;
+	u32 seqnum;
+	u32 acknum;
+	u8 data_offset;
+	u8 flags;
+	u16 window;
+	u16 checksum;
+	u16 urg_pointer;
+	u8 data[2];
+} tcp_packet;
+
 
 /* Default HTTP page with HTTP headers */
 char webpage[] =
@@ -125,7 +148,7 @@ unsigned int tint, tint0, tint1, tint2, tint3;
 
 int main(int argc, char *argv[])
 {
-	printf("minIP v0.1 (2014 10 08)\n");
+	printf("minIP v0.1 (2015 03 19)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
 	/* first argument needs to be a NIC */
@@ -300,7 +323,7 @@ int main(int argc, char *argv[])
 			//		printf("Other");
 				}
 			}
-			else if (swap16(rx->type) == 0x86DD) // IPv6
+			else if (swap16(rx->type) == ETHERTYPE_IPv6)
 			{
 			//	printf("\nIPv6");
 			}
@@ -390,7 +413,7 @@ int net_init(char *interface)
 
  	if (test_endian[0] == 0x00)
 	{
-		printf("Big Endian! This program will fail horribly.");
+		printf("Big Endian system detected! This program will fail horribly.");
 		return -1;
 	}
 

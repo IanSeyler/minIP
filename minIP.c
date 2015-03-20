@@ -102,7 +102,7 @@ typedef struct icmp_packet {
 	u16 checksum;
 	u16 id;
 	u16 sequence;
-	u16 timestamp;
+	u8 timestamp[8];
 	u8 data[2];
 } icmp_packet;
 typedef struct udp_packet {
@@ -262,8 +262,8 @@ int main(int argc, char *argv[])
 							tx_icmp->checksum = 0;
 							tx_icmp->id = rx_icmp->id;
 							tx_icmp->sequence = rx_icmp->sequence;
-							tx_icmp->timestamp = rx_icmp->timestamp;
-							memcpy (tx_icmp->data, rx_icmp->data, (swap16(rx_icmp->ipv4.total_length)-20-16+8));
+							memcpy (tx_icmp->timestamp, rx_icmp->timestamp, 8);
+							memcpy (tx_icmp->data, rx_icmp->data, (swap16(rx_icmp->ipv4.total_length)-20-16));
 							tx_icmp->checksum = checksum(&tosend[34], retval-14-20); // Frame length - MAC header - IPv4 header
 							// Send the reply
 							net_send(tosend, retval);

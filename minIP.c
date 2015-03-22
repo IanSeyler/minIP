@@ -48,6 +48,11 @@ u32 swap32(u32 in);
 #define ICMP_ECHO_REPLY 0
 #define ICMP_ECHO_REQUEST 8
 
+#define TCP_ACK 16
+#define TCP_RST 4
+#define TCP_SYN 2
+#define TCP_FIN 1
+
 /* Global variables */
 u8 src_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 u8 dst_MAC[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -104,7 +109,7 @@ typedef struct icmp_packet {
 	u16 id;
 	u16 sequence;
 	u64 timestamp;
-	u8 data[2];
+	u8 data;
 } icmp_packet;
 typedef struct udp_packet {
 	ipv4_packet ipv4;
@@ -112,7 +117,7 @@ typedef struct udp_packet {
 	u16 dest_port;
 	u16 length;
 	u16 checksum;
-	u8 data[2];
+	u8 data;
 } udp_packet;
 typedef struct tcp_packet {
 	ipv4_packet ipv4;
@@ -125,7 +130,7 @@ typedef struct tcp_packet {
 	u16 window;
 	u16 checksum;
 	u16 urg_pointer;
-	u8 data[2];
+	u8 data;
 } tcp_packet;
 
 
@@ -281,39 +286,52 @@ int main(int argc, char *argv[])
 				}
 				else if(rx_ipv4->protocol == PROTOCOL_IP_TCP)
 				{
-			//		printf("TCP");
-					if ((buffer[47] & 0x02) == 0x02)
+					printf("TCP");
+					tcp_packet* rx_tcp = (tcp_packet*)buffer;
+					if (rx_tcp->flags == TCP_SYN)
 					{
-			//			printf(" - SYN");
+						printf(" - SYN");
+						tcp_packet* tx_tcp = (tcp_packet*)tosend;
 						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
-						memcpy((void*)tosend, (void*)buffer+6, 6); // copy the incoming MAC to destination
-						memcpy((void*)tosend+6, (void*)buffer, 6); // copy the source MAC
-						memcpy((void*)tosend+30, (void*)buffer+26, 4); // copy the incoming IP to destination
-						memcpy((void*)tosend+26, (void*)buffer+30, 4); // copy the destination IP to source
-						memcpy((void*)&tshort, (void*)buffer+16, 2); // extract the packet length
-						memcpy((void*)tosend+34, (void*)buffer+36, 2); // copy destination port to source
-						memcpy((void*)tosend+36, (void*)buffer+34, 2); // copy source port to destination
-						memcpy((void*)&tint, (void*)buffer+38, 4); // extract sequence number
-						tint = ntohl(tint);
-						tint++; // increment sequence number
-						tint = htonl(tint);
-						memcpy((void*)tosend+42, (void*)&tint, 4); // store updated sequence number as acknowledgement number
-						tosend[47] |= 0x10; // set TCP ACK
-						tosend[50] = 0x00; // clear TCP checksum
-						tosend[51] = 0x00; // clear TCP checksum
+						// Ethernet
+						memcpy(tx_tcp->ipv4.ethernet.dest_mac, rx_tcp->ipv4.ethernet.src_mac, 6);
+						memcpy(tx_tcp->ipv4.ethernet.src_mac, src_MAC, 6);
+						tx_tcp->ipv4.ethernet.type = swap16(ETHERTYPE_IPv4);
+						// IPv4
+						tx_tcp->ipv4.version = rx_tcp->ipv4.version;
+						tx_tcp->ipv4.dsf = rx_tcp->ipv4.dsf;
+						tx_tcp->ipv4.total_length = rx_tcp->ipv4.total_length;
+						tx_tcp->ipv4.id = rx_tcp->ipv4.id;
+						tx_tcp->ipv4.flags = rx_tcp->ipv4.flags;
+						tx_tcp->ipv4.ttl = rx_tcp->ipv4.ttl;
+						tx_tcp->ipv4.protocol = rx_tcp->ipv4.protocol;
+						tx_tcp->ipv4.checksum = rx_tcp->ipv4.checksum; // No need to recalc checksum
+						memcpy(tx_tcp->ipv4.src_ip, rx_tcp->ipv4.dest_ip, 4);
+						memcpy(tx_tcp->ipv4.dest_ip, rx_tcp->ipv4.src_ip, 4);
+						// TCP
+						tx_tcp->src_port = rx_tcp->dest_port;
+						tx_tcp->dest_port = rx_tcp->src_port;
+						tx_tcp->seqnum = rx_tcp->seqnum;
+						tx_tcp->acknum = swap32(swap32(rx_tcp->seqnum)+1);
+						tx_tcp->data_offset = rx_tcp->data_offset;
+						tx_tcp->flags = TCP_SYN|TCP_ACK;
+						tx_tcp->window = rx_tcp->window;
+						tx_tcp->checksum = 0;
+						tx_tcp->urg_pointer = rx_tcp->urg_pointer;
 						 // Build the rest of the TCP pseudo-header
 						tosend[retval] = 0; // Reserved
 						tosend[retval+1] = 6; // Protocol
 						tosend[retval+2] = 0; // TCP length (Header + Data)
 						tosend[retval+3] = 44;
-						checksumval = checksum(&tosend[26], retval-26+4); // Start checksum at Source IP so we only need to build the tail of the pseudo header
-						memcpy((void*)tosend+50, (void*)&checksumval, 2);
+						tx_tcp->checksum = checksum(&tosend[26], retval-26+4); // Start checksum at Source IP so we only need to build the tail of the pseudo header
+						// Send the reply
 						net_send(tosend, retval);
 					}
-					else if ((buffer[47] & 0x10) == 0x10)
+					else if (rx_tcp->flags == TCP_ACK)
 					{
-			//			printf(" - ACK");
+						printf(" - ACK");
 					}
+					printf("\n");
 				}
 				else if (rx_ipv4->protocol == PROTOCOL_IP_UDP)
 				{

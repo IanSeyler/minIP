@@ -47,7 +47,6 @@ u32 swap32(u32 in);
 #define PROTOCOL_IP_UDP 11
 #define ICMP_ECHO_REPLY 0
 #define ICMP_ECHO_REQUEST 8
-
 #define TCP_ACK 16
 #define TCP_RST 4
 #define TCP_SYN 2
@@ -63,9 +62,9 @@ u8 src_GW[4] = {0, 0, 0, 0};
 u8 dst_IP[4] = {0, 0, 0, 0};
 unsigned char* buffer;
 unsigned char* tosend;
-unsigned short tshort, checksumval;
 int s; // Socket variable
 int running = 1, c, retval;
+unsigned int tint, tint0, tint1, tint2, tint3;
 struct sockaddr_ll sa;
 struct ifreq ifr;
 
@@ -109,7 +108,7 @@ typedef struct icmp_packet {
 	u16 id;
 	u16 sequence;
 	u64 timestamp;
-	u8 data;
+	u8 data[2]; // Set to 2 so can be used as pointer
 } icmp_packet;
 typedef struct udp_packet {
 	ipv4_packet ipv4;
@@ -117,7 +116,7 @@ typedef struct udp_packet {
 	u16 dest_port;
 	u16 length;
 	u16 checksum;
-	u8 data;
+	u8 data[2]; // Set to 2 so can be used as pointer
 } udp_packet;
 typedef struct tcp_packet {
 	ipv4_packet ipv4;
@@ -130,9 +129,9 @@ typedef struct tcp_packet {
 	u16 window;
 	u16 checksum;
 	u16 urg_pointer;
-	u8 data;
+	// Options and data
+//	u8 data[2]; // Set to 2 so can be used as pointer
 } tcp_packet;
-
 
 /* Default HTTP page with HTTP headers */
 char webpage[] =
@@ -150,8 +149,7 @@ char webpage[] =
 "</body>\n"
 "</html>\n";
 
-unsigned int tint, tint0, tint1, tint2, tint3;
-
+/* Main code */
 int main(int argc, char *argv[])
 {
 	printf("minIP v0.1 (2015 03 19)\n");

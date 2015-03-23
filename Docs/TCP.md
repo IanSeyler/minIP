@@ -47,21 +47,21 @@ Its as easy as 1-2-3! Really!
 2. SYN-ACK
 3. ACK
 
-	          ╔═══════════════════╗         
-	          ║TCP 3-way handshake║         
-	          ╚═══════════════════╝         
+		          ╔═══════════════════╗         
+		          ║TCP 3-way handshake║         
+		          ╚═══════════════════╝         
 	                                        
-	 ┌────────┐                   ┌────────┐
-	 │ Client │ ──────┬───┬─────▶ │ Server │
-	 └────────┘       │SYN│       └────────┘
-	                  └───┘                 
-	 ┌────────┐                   ┌────────┐
-	 │ Client │ ◀───┬───────┬──── │ Server │
-	 └────────┘     │SYN/ACK│     └────────┘
-	                └───────┘               
-	 ┌────────┐                   ┌────────┐
-	 │ Client │ ──────┬───┬─────▶ │ Server │
-	 └────────┘       │ACK│       └────────┘
-	                  └───┘                 
+		 ┌────────┐                   ┌────────┐
+		 │ Client │ ──────┬───┬─────▶ │ Server │
+		 └────────┘       │SYN│       └────────┘
+		                  └───┘                 
+		 ┌────────┐                   ┌────────┐
+		 │ Client │ ◀───┬───────┬──── │ Server │
+		 └────────┘     │SYN/ACK│     └────────┘
+		                └───────┘               
+		 ┌────────┐                   ┌────────┐
+		 │ Client │ ──────┬───┬─────▶ │ Server │
+		 └────────┘       │ACK│       └────────┘
+		                  └───┘                 
 
 The client wants to connect to a server and sends a SYN (SYNchronize) packet. The server then responds with a SYN-ACK (SYNchronize-ACKnowledge) packet. The client sends the server a ACK (ACKnowledge) packet.

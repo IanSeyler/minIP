@@ -48,6 +48,7 @@ u32 swap32(u32 in);
 #define ICMP_ECHO_REPLY 0
 #define ICMP_ECHO_REQUEST 8
 #define TCP_ACK 16
+#define TCP_PSH 8
 #define TCP_RST 4
 #define TCP_SYN 2
 #define TCP_FIN 1
@@ -328,6 +329,46 @@ int main(int argc, char *argv[])
 					else if (rx_tcp->flags == TCP_ACK)
 					{
 						printf(" - ACK");
+					}
+					else if (rx_tcp->flags == (TCP_PSH|TCP_ACK))
+					{
+						printf(" - PSH");
+						tcp_packet* tx_tcp = (tcp_packet*)tosend;
+						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
+						// Ethernet
+						memcpy(tx_tcp->ipv4.ethernet.dest_mac, rx_tcp->ipv4.ethernet.src_mac, 6);
+						memcpy(tx_tcp->ipv4.ethernet.src_mac, src_MAC, 6);
+						tx_tcp->ipv4.ethernet.type = swap16(ETHERTYPE_IPv4);
+						// IPv4
+						tx_tcp->ipv4.version = rx_tcp->ipv4.version;
+						tx_tcp->ipv4.dsf = rx_tcp->ipv4.dsf;
+						tx_tcp->ipv4.total_length = rx_tcp->ipv4.total_length;
+						tx_tcp->ipv4.id = rx_tcp->ipv4.id;
+						tx_tcp->ipv4.flags = rx_tcp->ipv4.flags;
+						tx_tcp->ipv4.ttl = rx_tcp->ipv4.ttl;
+						tx_tcp->ipv4.protocol = rx_tcp->ipv4.protocol;
+						tx_tcp->ipv4.checksum = rx_tcp->ipv4.checksum; // No need to recalc checksum
+						memcpy(tx_tcp->ipv4.src_ip, rx_tcp->ipv4.dest_ip, 4);
+						memcpy(tx_tcp->ipv4.dest_ip, rx_tcp->ipv4.src_ip, 4);
+						// TCP
+						tx_tcp->src_port = rx_tcp->dest_port;
+						tx_tcp->dest_port = rx_tcp->src_port;
+						tx_tcp->seqnum = rx_tcp->seqnum;
+						tx_tcp->acknum = swap32(swap32(rx_tcp->seqnum)+1);
+						tx_tcp->data_offset = rx_tcp->data_offset;
+						tx_tcp->flags = TCP_ACK;
+						tx_tcp->window = rx_tcp->window;
+						tx_tcp->checksum = 0;
+						tx_tcp->urg_pointer = rx_tcp->urg_pointer;
+						 // Build the rest of the TCP pseudo-header
+						tosend[retval] = 0; // Reserved
+						tosend[retval+1] = 6; // Protocol
+						tosend[retval+2] = 0; // TCP length (Header + Data)
+						tosend[retval+3] = 32;
+						tx_tcp->checksum = checksum(&tosend[26], retval-26+4); // Start checksum at Source IP so we only need to build the tail of the pseudo header
+						tosend[51] -= 4;
+						// Send the reply
+						net_send(tosend, retval);
 					}
 					printf("\n");
 				}

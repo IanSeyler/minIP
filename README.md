@@ -15,7 +15,7 @@ Provide enough of a stack to server a simple static webpage.
 Usage
 --------
 
-	./minIP eth1 192.168.0.99 255.255.255.0
+	./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
 
 Why
 --------
@@ -25,12 +25,12 @@ If this can be done in Phython (see [teeceepee](https://github.com/jvns/teeceepe
 What works
 --------
 
-Protocol | Functional 
+Protocol | Functional
 -----|-----
 ARP | yes
-IP | sort of
+IP | partially
 ICMP | yes
-TCP | no
+TCP | partially
 UDP | no
 TCPv6 | no
 UDPv6 | no

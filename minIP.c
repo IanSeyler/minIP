@@ -315,12 +315,6 @@ int main(int argc, char *argv[])
 						tx_tcp->window = rx_tcp->window;
 						tx_tcp->checksum = 0;
 						tx_tcp->urg_pointer = rx_tcp->urg_pointer;
-//						 // Build the rest of the TCP pseudo-header at the end of our data
-//						tosend[retval+0] = 0; // Reserved
-//						tosend[retval+1] = 6; // Protocol
-//						tosend[retval+2] = 0; // TCP length (Header + Data)
-//						tosend[retval+3] = 44;
-//						tx_tcp->checksum = checksum(&tosend[26], retval-26+4); // Start checksum at Source IP so we only need to build the tail of the pseudo header
 						tx_tcp->checksum = checksum_tcp(&tosend[34], retval-34, PROTOCOL_IP_TCP, retval-34);
 						// Send the reply
 						net_send(tosend, retval);
@@ -425,8 +419,8 @@ u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
 	if (bytes & 1) // Add the left-over byte if there is one
 		sum += (u8) data[i];
 
-	sum += protocol;
-	sum += length;
+	sum += swap16(protocol);
+	sum += swap16(length);
 
 	while (sum >> 16) // Fold total to 16-bits
 		sum = (sum & 0xFFFF) + (sum >> 16);

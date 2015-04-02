@@ -28,6 +28,7 @@ typedef uint64_t u64;
 
 /* Global functions */
 u16 checksum(u8* data, u16 bytes);
+u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length);
 int net_init(char *interface);
 int net_send(unsigned char* data, unsigned int bytes);
 int net_recv(unsigned char* data);
@@ -228,20 +229,17 @@ int main(int argc, char *argv[])
 				}
 				else if (buffer[21] == ARP_REPLY)
 				{
-			//		printf("Response");
+					// TODO - Responses to our requests
 				}
 			}
 			else if (swap16(rx->type) == ETHERTYPE_IPv4)
 			{
-			//	printf("\nIPv4 - ");
 				ipv4_packet* rx_ipv4 = (ipv4_packet*)buffer;
 				if(rx_ipv4->protocol == PROTOCOL_IP_ICMP)
 				{
-			//		printf("ICMP - ");
 					icmp_packet* rx_icmp = (icmp_packet*)buffer;
 					if(rx_icmp->type == ICMP_ECHO_REQUEST)
 					{
-			//			printf("Request");
 						if (*(u32*)rx_icmp->ipv4.dest_ip == *(u32*)src_IP)
 						{
 							// Reply to the ping request
@@ -267,7 +265,7 @@ int main(int argc, char *argv[])
 							tx_icmp->checksum = 0;
 							tx_icmp->id = rx_icmp->id;
 							tx_icmp->sequence = rx_icmp->sequence;
-							tx_icmp->timestamp = rx_icmp->timestamp; 
+							tx_icmp->timestamp = rx_icmp->timestamp;
 							memcpy (tx_icmp->data, rx_icmp->data, (swap16(rx_icmp->ipv4.total_length)-20-16)); // IP length - IPv4 header - ICMP header
 							tx_icmp->checksum = checksum(&tosend[34], retval-14-20); // Frame length - MAC header - IPv4 header
 							// Send the reply
@@ -280,7 +278,7 @@ int main(int argc, char *argv[])
 					}
 					else
 					{
-			//			printf("Other");
+			//			printf("Unknown ICMP packet");
 					}
 				}
 				else if(rx_ipv4->protocol == PROTOCOL_IP_TCP)
@@ -317,12 +315,13 @@ int main(int argc, char *argv[])
 						tx_tcp->window = rx_tcp->window;
 						tx_tcp->checksum = 0;
 						tx_tcp->urg_pointer = rx_tcp->urg_pointer;
-						 // Build the rest of the TCP pseudo-header
-						tosend[retval] = 0; // Reserved
-						tosend[retval+1] = 6; // Protocol
-						tosend[retval+2] = 0; // TCP length (Header + Data)
-						tosend[retval+3] = 44;
-						tx_tcp->checksum = checksum(&tosend[26], retval-26+4); // Start checksum at Source IP so we only need to build the tail of the pseudo header
+//						 // Build the rest of the TCP pseudo-header at the end of our data
+//						tosend[retval+0] = 0; // Reserved
+//						tosend[retval+1] = 6; // Protocol
+//						tosend[retval+2] = 0; // TCP length (Header + Data)
+//						tosend[retval+3] = 44;
+//						tx_tcp->checksum = checksum(&tosend[26], retval-26+4); // Start checksum at Source IP so we only need to build the tail of the pseudo header
+						tx_tcp->checksum = checksum_tcp(&tosend[34], retval-34, PROTOCOL_IP_TCP, retval-34);
 						// Send the reply
 						net_send(tosend, retval);
 					}
@@ -360,8 +359,8 @@ int main(int argc, char *argv[])
 						tx_tcp->window = rx_tcp->window;
 						tx_tcp->checksum = 0;
 						tx_tcp->urg_pointer = rx_tcp->urg_pointer;
-						 // Build the rest of the TCP pseudo-header
-						tosend[retval] = 0; // Reserved
+						 // Build the rest of the TCP pseudo-header at the end of our data
+						tosend[retval+0] = 0; // Reserved
 						tosend[retval+1] = 6; // Protocol
 						tosend[retval+2] = 0; // TCP length (Header + Data)
 						tosend[retval+3] = 32;
@@ -374,16 +373,16 @@ int main(int argc, char *argv[])
 				}
 				else if (rx_ipv4->protocol == PROTOCOL_IP_UDP)
 				{
-			//		printf("UDP");
+					// TODO - UDP
 				}
 				else
 				{
-			//		printf("Other");
+			//		printf("Unknown protocol");
 				}
 			}
 			else if (swap16(rx->type) == ETHERTYPE_IPv6)
 			{
-			//	printf("\nIPv6");
+				// TODO - IPv6
 			}
 		}
 	}
@@ -394,6 +393,8 @@ int main(int argc, char *argv[])
 }
 
 
+/* checksum - Calulate a checksum value */
+// Returns 16-bit checksum
 u16 checksum(u8* data, u16 bytes)
 {
 	u32 i, sum = 0;
@@ -410,7 +411,31 @@ u16 checksum(u8* data, u16 bytes)
 	return ~sum; // Return 1's complement
 }
 
+/* checksum_tcp - Calulate a TCP checksum value */
+// Returns 16-bit checksum
+u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
+{
+	u32 i, sum = 0;
+	data -= 8; // Start at the source and dest IPs
+	bytes += 8;
 
+	for (i=0; i<bytes-1; i+=2) // Add up the words
+		sum += *(u16 *) &data[i];
+
+	if (bytes & 1) // Add the left-over byte if there is one
+		sum += (u8) data[i];
+
+	sum += protocol;
+	sum += length;
+
+	while (sum >> 16) // Fold total to 16-bits
+		sum = (sum & 0xFFFF) + (sum >> 16);
+
+	return ~sum; // Return 1's complement
+}
+
+
+/* net_init - Initialize a raw socket */
 int net_init(char *interface)
 {
 	/* Open a socket in raw mode */
@@ -469,7 +494,7 @@ int net_init(char *interface)
 	int test_var = 1;
 	unsigned char *test_endian = (unsigned char*)&test_var;
 
- 	if (test_endian[0] == 0x00)
+	if (test_endian[0] == 0x00)
 	{
 		printf("Big Endian system detected! This program will fail horribly.");
 		return -1;

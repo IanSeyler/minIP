@@ -154,7 +154,7 @@ char webpage[] =
 /* Main code */
 int main(int argc, char *argv[])
 {
-	printf("minIP v0.1 (2015 03 19)\n");
+	printf("minIP v0.2 (2015 04 02)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
 	/* first argument needs to be a NIC */
@@ -283,11 +283,11 @@ int main(int argc, char *argv[])
 				}
 				else if(rx_ipv4->protocol == PROTOCOL_IP_TCP)
 				{
-					printf("TCP");
+//					printf("TCP");
 					tcp_packet* rx_tcp = (tcp_packet*)buffer;
 					if (rx_tcp->flags == TCP_SYN)
 					{
-						printf(" - SYN");
+//						printf(" - SYN");
 						tcp_packet* tx_tcp = (tcp_packet*)tosend;
 						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
 						// Ethernet
@@ -302,9 +302,10 @@ int main(int argc, char *argv[])
 						tx_tcp->ipv4.flags = rx_tcp->ipv4.flags;
 						tx_tcp->ipv4.ttl = rx_tcp->ipv4.ttl;
 						tx_tcp->ipv4.protocol = rx_tcp->ipv4.protocol;
-						tx_tcp->ipv4.checksum = rx_tcp->ipv4.checksum; // No need to recalc checksum
+						tx_tcp->ipv4.checksum = 0;
 						memcpy(tx_tcp->ipv4.src_ip, rx_tcp->ipv4.dest_ip, 4);
 						memcpy(tx_tcp->ipv4.dest_ip, rx_tcp->ipv4.src_ip, 4);
+						tx_tcp->ipv4.checksum = checksum(&tosend[14], 20);
 						// TCP
 						tx_tcp->src_port = rx_tcp->dest_port;
 						tx_tcp->dest_port = rx_tcp->src_port;
@@ -321,11 +322,12 @@ int main(int argc, char *argv[])
 					}
 					else if (rx_tcp->flags == TCP_ACK)
 					{
-						printf(" - ACK");
+//						printf(" - ACK");
+						// Ignore these for now.
 					}
 					else if (rx_tcp->flags == (TCP_PSH|TCP_ACK))
 					{
-						printf(" - PSH");
+//						printf(" - PSH");
 						tcp_packet* tx_tcp = (tcp_packet*)tosend;
 						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
 						// Ethernet
@@ -335,35 +337,70 @@ int main(int argc, char *argv[])
 						// IPv4
 						tx_tcp->ipv4.version = rx_tcp->ipv4.version;
 						tx_tcp->ipv4.dsf = rx_tcp->ipv4.dsf;
-						tx_tcp->ipv4.total_length = rx_tcp->ipv4.total_length;
+						tx_tcp->ipv4.total_length = swap16(52);
 						tx_tcp->ipv4.id = rx_tcp->ipv4.id;
 						tx_tcp->ipv4.flags = rx_tcp->ipv4.flags;
 						tx_tcp->ipv4.ttl = rx_tcp->ipv4.ttl;
 						tx_tcp->ipv4.protocol = rx_tcp->ipv4.protocol;
-						tx_tcp->ipv4.checksum = rx_tcp->ipv4.checksum; // No need to recalc checksum
+						tx_tcp->ipv4.checksum = 0;
 						memcpy(tx_tcp->ipv4.src_ip, rx_tcp->ipv4.dest_ip, 4);
 						memcpy(tx_tcp->ipv4.dest_ip, rx_tcp->ipv4.src_ip, 4);
+						tx_tcp->ipv4.checksum = checksum(&tosend[14], 20);
 						// TCP
 						tx_tcp->src_port = rx_tcp->dest_port;
 						tx_tcp->dest_port = rx_tcp->src_port;
 						tx_tcp->seqnum = rx_tcp->seqnum;
+						tx_tcp->acknum = swap32(swap32(rx_tcp->seqnum)+(retval-14-20-32)); // Add the bytes received
+						tx_tcp->data_offset = rx_tcp->data_offset;
+						tx_tcp->flags = TCP_ACK;
+						tx_tcp->window = rx_tcp->window;
+						tx_tcp->checksum = 0;
+						tx_tcp->urg_pointer = rx_tcp->urg_pointer;
+						tx_tcp->checksum = checksum_tcp(&tosend[34], 32, PROTOCOL_IP_TCP, 32);
+						// Send the reply
+						net_send(tosend, 66);
+						// Disconnect the client
+						tx_tcp->flags = TCP_FIN|TCP_ACK;
+						tx_tcp->checksum = 0;
+						tx_tcp->checksum = checksum_tcp(&tosend[34], 32, PROTOCOL_IP_TCP, 32);
+						net_send(tosend, 66);
+					}
+					else if (rx_tcp->flags == (TCP_FIN|TCP_ACK))
+					{
+//						printf(" - FIN");
+						tcp_packet* tx_tcp = (tcp_packet*)tosend;
+						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
+						// Ethernet
+						memcpy(tx_tcp->ipv4.ethernet.dest_mac, rx_tcp->ipv4.ethernet.src_mac, 6);
+						memcpy(tx_tcp->ipv4.ethernet.src_mac, src_MAC, 6);
+						tx_tcp->ipv4.ethernet.type = swap16(ETHERTYPE_IPv4);
+						// IPv4
+						tx_tcp->ipv4.version = rx_tcp->ipv4.version;
+						tx_tcp->ipv4.dsf = rx_tcp->ipv4.dsf;
+						tx_tcp->ipv4.total_length = swap16(52);
+						tx_tcp->ipv4.id = rx_tcp->ipv4.id;
+						tx_tcp->ipv4.flags = rx_tcp->ipv4.flags;
+						tx_tcp->ipv4.ttl = rx_tcp->ipv4.ttl;
+						tx_tcp->ipv4.protocol = rx_tcp->ipv4.protocol;
+						tx_tcp->ipv4.checksum = 0;
+						memcpy(tx_tcp->ipv4.src_ip, rx_tcp->ipv4.dest_ip, 4);
+						memcpy(tx_tcp->ipv4.dest_ip, rx_tcp->ipv4.src_ip, 4);
+						tx_tcp->ipv4.checksum = checksum(&tosend[14], 20);
+						// TCP
+						tx_tcp->src_port = rx_tcp->dest_port;
+						tx_tcp->dest_port = rx_tcp->src_port;
+						tx_tcp->seqnum = rx_tcp->acknum;
 						tx_tcp->acknum = swap32(swap32(rx_tcp->seqnum)+1);
 						tx_tcp->data_offset = rx_tcp->data_offset;
 						tx_tcp->flags = TCP_ACK;
 						tx_tcp->window = rx_tcp->window;
 						tx_tcp->checksum = 0;
 						tx_tcp->urg_pointer = rx_tcp->urg_pointer;
-						 // Build the rest of the TCP pseudo-header at the end of our data
-						tosend[retval+0] = 0; // Reserved
-						tosend[retval+1] = 6; // Protocol
-						tosend[retval+2] = 0; // TCP length (Header + Data)
-						tosend[retval+3] = 32;
-						tx_tcp->checksum = checksum(&tosend[26], retval-26+4); // Start checksum at Source IP so we only need to build the tail of the pseudo header
-						tosend[51] -= 4;
+						tx_tcp->checksum = checksum_tcp(&tosend[34], 32, PROTOCOL_IP_TCP, 32);
 						// Send the reply
-						net_send(tosend, retval);
+						net_send(tosend, 66);
 					}
-					printf("\n");
+//					printf("\n");
 				}
 				else if (rx_ipv4->protocol == PROTOCOL_IP_UDP)
 				{
@@ -404,6 +441,7 @@ u16 checksum(u8* data, u16 bytes)
 
 	return ~sum; // Return 1's complement
 }
+
 
 /* checksum_tcp - Calulate a TCP checksum value */
 // Returns 16-bit checksum

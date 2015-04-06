@@ -34,3 +34,9 @@ TCP | partially
 UDP | no
 TCPv6 | no
 UDPv6 | no
+
+Todo
+--------
+Resending dropped packets
+Large packet support
+Handling more than one incoming connection at once

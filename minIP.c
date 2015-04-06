@@ -154,7 +154,7 @@ char webpage[] =
 /* Main code */
 int main(int argc, char *argv[])
 {
-	printf("minIP v0.2 (2015 04 02)\n");
+	printf("minIP v0.3 (2015 04 06)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
 	/* first argument needs to be a NIC */
@@ -359,7 +359,20 @@ int main(int argc, char *argv[])
 						tx_tcp->checksum = checksum_tcp(&tosend[34], 32, PROTOCOL_IP_TCP, 32);
 						// Send the reply
 						net_send(tosend, 66);
+						// Send the webpage
+						tx_tcp->ipv4.total_length = swap16(52+strlen(webpage));
+						tx_tcp->ipv4.checksum = 0;
+						tx_tcp->ipv4.checksum = checksum(&tosend[14], 20);
+						tx_tcp->flags = TCP_PSH|TCP_ACK;
+						tx_tcp->checksum = 0;
+						memcpy((void*)tosend+66, (void*)webpage, strlen(webpage));
+						tx_tcp->checksum = checksum_tcp(&tosend[34], 32+strlen(webpage), PROTOCOL_IP_TCP, 32+strlen(webpage));
+						net_send(tosend, 66+strlen(webpage));
 						// Disconnect the client
+						tx_tcp->ipv4.total_length = swap16(52);
+						tx_tcp->ipv4.checksum = 0;
+						tx_tcp->ipv4.checksum = checksum(&tosend[14], 20);
+						tx_tcp->seqnum = swap32(swap32(tx_tcp->seqnum)+strlen(webpage));
 						tx_tcp->flags = TCP_FIN|TCP_ACK;
 						tx_tcp->checksum = 0;
 						tx_tcp->checksum = checksum_tcp(&tosend[34], 32, PROTOCOL_IP_TCP, 32);

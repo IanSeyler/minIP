@@ -10,7 +10,7 @@ Eventually it will also run on top of the BareMetal exokernel.
 Goals
 --------
 
-Provide enough of a stack to server a simple static webpage.
+Provide enough of a stack to serve a simple static webpage.
 
 Usage
 --------

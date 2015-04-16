@@ -41,11 +41,14 @@ TCP packet layout:
 The TCP Handshake
 ------
 
-Its as easy as 1-2-3! Really!
+It's as easy as 1-2-3! Really!
 
-1. SYN
-2. SYN-ACK
-3. ACK
+Client: "Hi! I'd like to connect to you. Is that ok?"
+
+Server: "Sure, I'll allow that."
+
+Client: "Thanks!"
+
 
 		          ╔═══════════════════╗         
 		          ║TCP 3-way handshake║         

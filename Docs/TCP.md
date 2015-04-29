@@ -2,7 +2,7 @@
 TCP
 ========
 
-TCP (Transmission Control Protocol)
+TCP (Transmission Control Protocol) also known as [RFC 793](http://tools.ietf.org/html/rfc793).
 
 
 Anatomy of an TCP packet
@@ -37,6 +37,25 @@ TCP packet layout:
 		50-51, Checksum
 		52-53, Urgent Pointer
 
+TCP Packet diagram:
+
+	                                                                   
+	  ┌───────────────────────────────────────────────────────────────┐
+	  │0                   1                   2                   3  │
+	  │0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1│
+	  ├───────────────────────────────┬───────────────────────────────┤
+	  │          Source Port          │       Destination Port        │
+	  ├───────────────────────────────┴───────────────────────────────┤
+	  │                        Sequence Number                        │
+	  ├───────────────────────────────────────────────────────────────┤
+	  │                    Acknowledgement Number                     │
+	  ├───────┬───────────┬─┬─┬─┬─┬─┬─┬───────────────────────────────┤
+	  │ Data  │           │U│A│P│R│S│F│                               │
+	  │Offset │ Reserved  │R│C│S│S│Y│I│          Window Size          │
+	  │       │           │G│K│H│T│N│N│                               │
+	  ├───────┴───────────┴─┴─┴─┴─┴─┴─┼───────────────────────────────┤
+	  │           Checksum            │        Urgent Pointer         │
+	  └───────────────────────────────┴───────────────────────────────┘
 
 The TCP Handshake
 ------

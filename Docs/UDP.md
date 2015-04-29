@@ -2,7 +2,7 @@
 UDP
 ========
 
-UDP (User Datagram Protocol)
+UDP (User Datagram Protocol) also known as [RFC 768](http://tools.ietf.org/html/rfc768).
 
 
 Anatomy of an UDP packet

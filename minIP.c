@@ -18,7 +18,10 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#define __USE_MISC
+/* net/if.h requires flag __USE_MISC on some systems to set standard interface flags */
 #include <net/if.h>
+#undef __USE_MISC
 #include <net/ethernet.h>
 #include <sys/ioctl.h>
 #include <netpacket/packet.h>

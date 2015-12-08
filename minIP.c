@@ -4,7 +4,12 @@
 // Linux compile : gcc minIP.c -o minIP
 // Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
 
+#define __USE_MISC
+
 /* Global Includes */
+#ifdef BAREMETAL
+#include "libBareMetal.h"
+#else
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -19,6 +24,7 @@
 #include <netpacket/packet.h>
 #include <fcntl.h>
 #include <errno.h>
+#endif
 
 /* Typedefs */
 typedef uint8_t u8;
@@ -496,6 +502,9 @@ u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
 /* net_init - Initialize a raw socket */
 int net_init(char *interface)
 {
+	#ifdef BAREMETAL
+	/* No need to do anything here! */
+	#else
 	/* Open a socket in raw mode */
 	s = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (s == -1)
@@ -558,6 +567,7 @@ int net_init(char *interface)
 		return -1;
 	}
 
+	#endif
 	/* We should now have a working port to send/recv raw frames */
 	return 0;
 }
@@ -568,7 +578,11 @@ int net_init(char *interface)
 // Returns number of bytes sent
 int net_send(unsigned char* data, unsigned int bytes)
 {
+	#ifdef BAREMETAL
+	b_ethernet_tx(data, bytes);
+	#else
 	return (sendto(s, data, bytes, 0, (struct sockaddr *)&sa, sizeof (sa)));
+	#endif
 }
 
 
@@ -577,7 +591,11 @@ int net_send(unsigned char* data, unsigned int bytes)
 // Returns number of bytes read
 int net_recv(unsigned char* data)
 {
+	#ifdef BAREMETAL
+	return b_ethernet_rx(data);
+	#else
 	return (recvfrom(s, data, ETH_FRAME_LEN, 0, 0, 0));
+	#endif
 }
 
 

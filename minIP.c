@@ -1,19 +1,22 @@
 /* minIP */
 /* Written by Ian Seyler */
 
-// Linux compile : gcc minIP.c -o minIP
+// Linux compile: gcc minIP.c -o minIP
 // Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
+// BareMetal compile:
+// gcc -I newlib-2.4.0/newlib/libc/include/ -c minIP.c -o minIP.o -DBAREMETAL
+// ld -T app.ld -o minIP.app crt0.o minIP.o libc.a libBareMetal.o
 
 #define __USE_MISC
 
 /* Global Includes */
-#ifdef BAREMETAL
-#include "libBareMetal.h"
-#else
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef BAREMETAL
+#include "libBareMetal.h"
+#else
 #include <time.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -36,6 +39,7 @@ typedef uint64_t u64;
 u16 checksum(u8* data, u16 bytes);
 u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length);
 int net_init(char *interface);
+int net_exit();
 int net_send(unsigned char* data, unsigned int bytes);
 int net_recv(unsigned char* data);
 u16 swap16(u16 in);
@@ -73,8 +77,10 @@ unsigned char* tosend;
 int s; // Socket variable
 int running = 1, c, retval;
 unsigned int tint, tint0, tint1, tint2, tint3;
+#ifndef BAREMETAL
 struct sockaddr_ll sa;
 struct ifreq ifr;
+#endif
 
 /* Global structs */
 #pragma pack(1)
@@ -173,7 +179,7 @@ char webpage[] =
 /* Main code */
 int main(int argc, char *argv[])
 {
-	printf("minIP v0.3 (2015 04 06)\n");
+	printf("minIP v0.4 (2016 11 23)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
 	/* first argument needs to be a NIC */
@@ -451,7 +457,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("\n");
-	close(s);
+	net_exit();
 	return 0;
 }
 
@@ -503,7 +509,15 @@ u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
 int net_init(char *interface)
 {
 	#ifdef BAREMETAL
-	/* No need to do anything here! */
+	/* Populate the MAC Address */
+	/* Pulls the MAC from the OS sys var table... so gross */
+	char * os_MAC = (void*)0x110050;
+	src_MAC[0] = os_MAC[0];
+	src_MAC[1] = os_MAC[1];
+	src_MAC[2] = os_MAC[2];
+	src_MAC[3] = os_MAC[3];
+	src_MAC[4] = os_MAC[4];
+	src_MAC[5] = os_MAC[5];
 	#else
 	/* Open a socket in raw mode */
 	s = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -572,6 +586,15 @@ int net_init(char *interface)
 	return 0;
 }
 
+
+/* net_exit - Clean up and exit */
+int net_exit()
+{
+	#ifndef BAREMETAL
+	close(s);
+	#endif
+	return 0;
+}
 
 /* net_send - Send a raw Ethernet packet */
 // Wrapper for OS send function

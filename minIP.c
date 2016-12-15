@@ -11,14 +11,11 @@
 
 /* Global Includes */
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #ifdef BAREMETAL
 #include "libBareMetal.h"
 #else
-#include <time.h>
-#include <ctype.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <net/if.h>
@@ -26,7 +23,6 @@
 #include <sys/ioctl.h>
 #include <netpacket/packet.h>
 #include <fcntl.h>
-#include <errno.h>
 #endif
 
 /* Typedefs */

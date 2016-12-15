@@ -68,8 +68,8 @@ u8 src_IP[4] = {0, 0, 0, 0};
 u8 src_SN[4] = {0, 0, 0, 0};
 u8 src_GW[4] = {0, 0, 0, 0};
 u8 dst_IP[4] = {0, 0, 0, 0};
-unsigned char* buffer;
-unsigned char* tosend;
+unsigned char buffer[ETH_FRAME_LEN];
+unsigned char tosend[ETH_FRAME_LEN];
 int s; // Socket variable
 int running = 1, c, retval;
 unsigned int tint, tint0, tint1, tint2, tint3;
@@ -204,9 +204,6 @@ int main(int argc, char *argv[])
 	src_GW[3] = tint3;
 
 	net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
-
-	buffer = (void*)malloc(ETH_FRAME_LEN);
-	tosend = (void*)malloc(ETH_FRAME_LEN);
 
 	printf("This host:\n");
 	printf("HW: %02X:%02X:%02X:%02X:%02X:%02X\n", src_MAC[0], src_MAC[1], src_MAC[2], src_MAC[3], src_MAC[4], src_MAC[5]);

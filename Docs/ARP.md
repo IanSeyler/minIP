@@ -57,6 +57,13 @@ ARP reply packet layout:
 		32-37, Target MAC (The requestor)
 		38-41, Target IP (The requestor)
 
+ARP Caching
+--------
+
+The operating system maintains a cache of ARP responses so it will not need to send out a request for the MAC of a device it has already been in contact with. On Windows and Linux you can see this cache by executing the following command:
+
+	arp -a
+
 ARP Spoofing
 --------
 

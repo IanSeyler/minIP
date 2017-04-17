@@ -175,6 +175,9 @@ char webpage[] =
 /* Main code */
 int main(int argc, char *argv[])
 {
+	#ifdef BAREMETAL
+	b_output("minIP v0.4 (2016 11 23)\n");
+	#else
 	printf("minIP v0.4 (2016 11 23)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
@@ -203,12 +206,13 @@ int main(int argc, char *argv[])
 	src_GW[2] = tint2;
 	src_GW[3] = tint3;
 
-	net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
-
 	printf("This host:\n");
 	printf("HW: %02X:%02X:%02X:%02X:%02X:%02X\n", src_MAC[0], src_MAC[1], src_MAC[2], src_MAC[3], src_MAC[4], src_MAC[5]);
 	printf("IP: %u.%u.%u.%u\n", src_IP[0], src_IP[1], src_IP[2], src_IP[3]);
 	printf("SN: %u.%u.%u.%u\n", src_SN[0], src_SN[1], src_SN[2], src_SN[3]);
+	#endif
+
+	net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
 
 	while(running == 1)
 	{
@@ -449,7 +453,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	#ifdef BAREMETAL
+	b_output("\n");
+	#else
 	printf("\n");
+	#endif
 	net_exit();
 	return 0;
 }

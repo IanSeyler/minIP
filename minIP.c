@@ -10,12 +10,12 @@
 #define __USE_MISC
 
 /* Global Includes */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #ifdef BAREMETAL
 #include "libBareMetal.h"
 #else
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <net/if.h>
@@ -26,10 +26,17 @@
 #endif
 
 /* Typedefs */
+#ifdef BAREMETAL
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long u64;
+#else
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
+#endif
 
 /* Global functions */
 u16 checksum(u8* data, u16 bytes);
@@ -40,6 +47,11 @@ int net_send(unsigned char* data, unsigned int bytes);
 int net_recv(unsigned char* data);
 u16 swap16(u16 in);
 u32 swap32(u32 in);
+#ifdef BAREMETAL
+void* memset( void* s, int c, int n );
+void* memcpy( void* d, const void* s, int n );
+int strlen( const char* s );
+#endif
 
 /* Global defines */
 #undef ETH_FRAME_LEN
@@ -176,9 +188,9 @@ char webpage[] =
 int main(int argc, char *argv[])
 {
 	#ifdef BAREMETAL
-	b_output("minIP v0.4 (2016 11 23)\n");
+		b_output("minIP v0.5 (2017 04 18)\n");
 	#else
-	printf("minIP v0.4 (2016 11 23)\n");
+	printf("minIP v0.5 (2017 04 18)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");
 
 	/* first argument needs to be a NIC */
@@ -387,7 +399,7 @@ int main(int argc, char *argv[])
 						tx_tcp->ipv4.checksum = checksum(&tosend[14], 20);
 						tx_tcp->flags = TCP_PSH|TCP_ACK;
 						tx_tcp->checksum = 0;
-						memcpy((void*)tosend+66, (void*)webpage, strlen(webpage));
+						memcpy((char*)tosend+66, (char*)webpage, strlen(webpage));
 						tx_tcp->checksum = checksum_tcp(&tosend[34], 32+strlen(webpage), PROTOCOL_IP_TCP, 32+strlen(webpage));
 						net_send(tosend, 66+strlen(webpage));
 						// Disconnect the client
@@ -454,9 +466,9 @@ int main(int argc, char *argv[])
 	}
 
 	#ifdef BAREMETAL
-	b_output("\n");
+		b_output("\n");
 	#else
-	printf("\n");
+		printf("\n");
 	#endif
 	net_exit();
 	return 0;
@@ -467,7 +479,8 @@ int main(int argc, char *argv[])
 // Returns 16-bit checksum
 u16 checksum(u8* data, u16 bytes)
 {
-	u32 i, sum = 0;
+	u32 sum = 0;
+	u16 i;
 
 	for (i=0; i<bytes-1; i+=2) // Add up the words
 		sum += *(u16 *) &data[i];
@@ -486,7 +499,8 @@ u16 checksum(u8* data, u16 bytes)
 // Returns 16-bit checksum
 u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
 {
-	u32 i, sum = 0;
+	u32 sum = 0;
+	u16 i;
 	data -= 8; // Start at the source and dest IPs
 	bytes += 8;
 
@@ -604,6 +618,7 @@ int net_send(unsigned char* data, unsigned int bytes)
 {
 	#ifdef BAREMETAL
 	b_ethernet_tx(data, bytes);
+	return bytes;
 	#else
 	return (sendto(s, data, bytes, 0, (struct sockaddr *)&sa, sizeof (sa)));
 	#endif
@@ -640,5 +655,42 @@ u32 swap32(u32 in)
 	return out;
 }
 
+#ifdef BAREMETAL
+void* memset( void* s, int c, int n )
+{
+    char* _src;
 
+    _src = ( char* )s;
+
+    while ( n-- ) {
+        *_src++ = c;
+    }
+
+    return s;
+}
+
+void* memcpy( void* d, const void* s, int n )
+{
+    char* dest;
+    char* src;
+
+    dest = ( char* )d;
+    src = ( char* )s;
+
+    while ( n-- ) {
+        *dest++ = *src++;
+    }
+
+    return d;
+}
+
+int strlen( const char* s )
+{
+    int r = 0;
+
+    for( ; *s++ != 0; r++ ) { }
+
+    return r;
+}
+#endif
 /* EOF */

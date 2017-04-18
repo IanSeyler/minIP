@@ -3,9 +3,13 @@
 
 // Linux compile: gcc minIP.c -o minIP
 // Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
-// BareMetal compile:
+
+// BareMetal compile (with newlib):
 // gcc -I newlib-2.4.0/newlib/libc/include/ -c minIP.c -o minIP.o -DBAREMETAL
 // ld -T app.ld -o minIP.app crt0.o minIP.o libc.a libBareMetal.o
+
+// BareMetal compile (standalone):
+// ./build.sh
 
 #define __USE_MISC
 
@@ -165,7 +169,7 @@ char webpage[] =
 "<html>\n"
 "   <head>\n"
 "       <title>minIP</title>\n"
-"       <link rel=\"stylesheet\" href=\"http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css\">\n"
+"       <link rel=\"stylesheet\" href=\"http://netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css\">\n"
 "       <link href='http://fonts.googleapis.com/css?family=Roboto:300' rel='stylesheet' type='text/css'>\n"
 "       <style>\n"
 "           body, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {\n"
@@ -188,7 +192,19 @@ char webpage[] =
 int main(int argc, char *argv[])
 {
 	#ifdef BAREMETAL
-		b_output("minIP v0.5 (2017 04 18)\n");
+	b_output("minIP v0.5 (2017 04 18)\n");
+	src_IP[0] = 10;
+	src_IP[1] = 0;
+	src_IP[2] = 0;
+	src_IP[3] = 10;
+	src_SN[0] = 255;
+	src_SN[1] = 255;
+	src_SN[2] = 255;
+	src_SN[3] = 0;
+	src_GW[0] = 10;
+	src_GW[1] = 0;
+	src_GW[2] = 0;
+	src_GW[3] = 1;
 	#else
 	printf("minIP v0.5 (2017 04 18)\n");
 	printf("Written by Ian Seyler @ Return Infinity\n\n");

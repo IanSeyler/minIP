@@ -19,9 +19,13 @@ Linux:
 
 	./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
 
-BareMetal:
+BareMetal (with newlib):
 
 	minIP.app en0 192.168.0.99 255.255.255.0 192.168.0.1
+
+BareMetal (standalone - it uses hardcoded addresses, no arguments):
+
+	minIP.app
 
 Why
 --------

@@ -17,14 +17,12 @@
 #if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
 #include "libBareMetal.h"
 #endif
-#if defined(BAREMETAL)
+#if defined(BAREMETAL) || defined(LINUX)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#elsif !defined(BAREMETAL_STANDALONE)
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#endif
+#if defined(LINUX)
 #include <unistd.h>
 #include <netinet/in.h>
 #include <net/if.h>

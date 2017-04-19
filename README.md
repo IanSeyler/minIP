@@ -22,6 +22,7 @@ Linux:
 BareMetal (with newlib):
 
 	gcc -I PATH_TO_NEWLIB_HEADERS -c minIP.c -o minIP.o -DBAREMETAL
+	gcc -c -m64 -Wall -W -pedantic -fno-builtin -nostdlib -nostartfiles -nodefaultlibs -fomit-frame-pointer -mno-red-zone -o libBareMetal.o libBareMetal.c
 	ld -T app.ld -o minIP.app crt0.o minIP.o libc.a libBareMetal.o
 
 BareMetal (standalone - it uses hardcoded IP addresses)

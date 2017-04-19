@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#else
+#elsif !defined(BAREMETAL_STANDALONE)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -94,7 +94,7 @@ unsigned char tosend[ETH_FRAME_LEN];
 int s; // Socket variable
 int running = 1, c, retval;
 unsigned int tint, tint0, tint1, tint2, tint3;
-#if not defined(BAREMETAL) && not defined(BAREMETAL_STANDALONE)
+#if !defined(BAREMETAL) && !defined(BAREMETAL_STANDALONE)
 struct sockaddr_ll sa;
 struct ifreq ifr;
 #endif
@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	#ifdef BAREMETAL_STANDALONE
+	#if defined(BAREMETAL_STANDALONE)
 	b_output("\n");
 	#else
 	printf("\n");
@@ -626,7 +626,7 @@ int net_init(char *interface)
 /* net_exit - Clean up and exit */
 int net_exit()
 {
-	#if not defined(BAREMETAL) || not defined(BAREMETAL_STANDALONE)
+	#if !defined(BAREMETAL) && !defined(BAREMETAL_STANDALONE)
 	close(s);
 	#endif
 	return 0;

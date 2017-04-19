@@ -12,6 +12,22 @@ Goals
 
 Provide enough of a stack to serve a simple static webpage.
 
+Building
+--------
+
+Linux:
+
+	make
+
+BareMetal (with newlib):
+
+	gcc -I PATH_TO_NEWLIB_HEADERS -c minIP.c -o minIP.o -DBAREMETAL
+	ld -T app.ld -o minIP.app crt0.o minIP.o libc.a libBareMetal.o
+
+BareMetal (standalone - it uses hardcoded IP addresses)
+
+	./build.sh
+
 Usage
 --------
 

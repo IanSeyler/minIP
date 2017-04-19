@@ -14,8 +14,13 @@
 #define __USE_MISC
 
 /* Global Includes */
-#ifdef BAREMETAL
+#if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
 #include "libBareMetal.h"
+#endif
+#if defined(BAREMETAL)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #else
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +35,7 @@
 #endif
 
 /* Typedefs */
-#ifdef BAREMETAL
+#if defined(BAREMETAL_STANDALONE)
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -51,7 +56,7 @@ int net_send(unsigned char* data, unsigned int bytes);
 int net_recv(unsigned char* data);
 u16 swap16(u16 in);
 u32 swap32(u32 in);
-#ifdef BAREMETAL
+#if defined(BAREMETAL_STANDALONE)
 void* memset( void* s, int c, int n );
 void* memcpy( void* d, const void* s, int n );
 int strlen( const char* s );
@@ -89,7 +94,7 @@ unsigned char tosend[ETH_FRAME_LEN];
 int s; // Socket variable
 int running = 1, c, retval;
 unsigned int tint, tint0, tint1, tint2, tint3;
-#ifndef BAREMETAL
+#if not defined(BAREMETAL) && not defined(BAREMETAL_STANDALONE)
 struct sockaddr_ll sa;
 struct ifreq ifr;
 #endif
@@ -191,7 +196,7 @@ char webpage[] =
 /* Main code */
 int main(int argc, char *argv[])
 {
-	#ifdef BAREMETAL
+	#if defined(BAREMETAL_STANDALONE)
 	b_output("minIP v0.5 (2017 04 18)\n");
 	src_IP[0] = 10;
 	src_IP[1] = 0;
@@ -481,10 +486,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	#ifdef BAREMETAL
-		b_output("\n");
+	#ifdef BAREMETAL_STANDALONE
+	b_output("\n");
 	#else
-		printf("\n");
+	printf("\n");
 	#endif
 	net_exit();
 	return 0;
@@ -539,7 +544,7 @@ u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
 /* net_init - Initialize a raw socket */
 int net_init(char *interface)
 {
-	#ifdef BAREMETAL
+	#if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
 	/* Populate the MAC Address */
 	/* Pulls the MAC from the OS sys var table... so gross */
 	char * os_MAC = (void*)0x110050;
@@ -621,7 +626,7 @@ int net_init(char *interface)
 /* net_exit - Clean up and exit */
 int net_exit()
 {
-	#ifndef BAREMETAL
+	#if not defined(BAREMETAL) || not defined(BAREMETAL_STANDALONE)
 	close(s);
 	#endif
 	return 0;
@@ -632,7 +637,7 @@ int net_exit()
 // Returns number of bytes sent
 int net_send(unsigned char* data, unsigned int bytes)
 {
-	#ifdef BAREMETAL
+	#if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
 	b_ethernet_tx(data, bytes);
 	return bytes;
 	#else
@@ -646,7 +651,7 @@ int net_send(unsigned char* data, unsigned int bytes)
 // Returns number of bytes read
 int net_recv(unsigned char* data)
 {
-	#ifdef BAREMETAL
+	#if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
 	return b_ethernet_rx(data);
 	#else
 	return (recvfrom(s, data, ETH_FRAME_LEN, 0, 0, 0));
@@ -671,7 +676,7 @@ u32 swap32(u32 in)
 	return out;
 }
 
-#ifdef BAREMETAL
+#ifdef BAREMETAL_STANDALONE
 void* memset( void* s, int c, int n )
 {
     char* _src;

@@ -163,7 +163,7 @@ typedef struct tcp_packet {
 } tcp_packet;
 
 /* Default HTTP page with HTTP headers */
-char webpage[] =
+const char webpage[] =
 "HTTP/1.0 200 OK\n"
 "Server: BareMetal (http://www.returninfinity.com)\n"
 "Content-type: text/html\n"
@@ -190,12 +190,13 @@ char webpage[] =
 "\t\t</div>\n"
 "\t</body>\n"
 "</html>\n";
+const char version_string[] = "minIP v0.5 (2017 04 18)\n";
 
 /* Main code */
 int main(int argc, char *argv[])
 {
 	#if defined(BAREMETAL_STANDALONE)
-	b_output("minIP v0.5 (2017 04 18)\n");
+	b_output(version_string);
 	src_IP[0] = 10;
 	src_IP[1] = 0;
 	src_IP[2] = 0;
@@ -209,8 +210,7 @@ int main(int argc, char *argv[])
 	src_GW[2] = 0;
 	src_GW[3] = 1;
 	#else
-	printf("minIP v0.5 (2017 04 18)\n");
-	printf("Written by Ian Seyler @ Return Infinity\n\n");
+	printf(version_string);
 
 	/* first argument needs to be a NIC */
 	if (argc < 5)

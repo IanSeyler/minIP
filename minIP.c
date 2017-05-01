@@ -90,7 +90,7 @@ u8 dst_IP[4] = {0, 0, 0, 0};
 unsigned char buffer[ETH_FRAME_LEN];
 unsigned char tosend[ETH_FRAME_LEN];
 int s; // Socket variable
-int running = 1, c, retval;
+int running = 1, c, recv_packet_len;
 unsigned int tint, tint0, tint1, tint2, tint3;
 #if !defined(BAREMETAL) && !defined(BAREMETAL_STANDALONE)
 struct sockaddr_ll sa;
@@ -247,10 +247,10 @@ int main(int argc, char *argv[])
 
 	while(running == 1)
 	{
-		retval = net_recv(buffer);
+		recv_packet_len = net_recv(buffer);
 		eth_header* rx = (eth_header*)buffer;
 
-		if (retval > 0) // Make sure we received a packet
+		if (recv_packet_len > 0) // Make sure we received a packet
 		{
 			memset(tosend, 0, ETH_FRAME_LEN); // clear the send buffer
 			if (swap16(rx->type) == ETHERTYPE_ARP)
@@ -320,9 +320,9 @@ int main(int argc, char *argv[])
 							tx_icmp->sequence = rx_icmp->sequence;
 							tx_icmp->timestamp = rx_icmp->timestamp;
 							memcpy (tx_icmp->data, rx_icmp->data, (swap16(rx_icmp->ipv4.total_length)-20-16)); // IP length - IPv4 header - ICMP header
-							tx_icmp->checksum = checksum(&tosend[34], retval-14-20); // Frame length - MAC header - IPv4 header
+							tx_icmp->checksum = checksum(&tosend[34], recv_packet_len-14-20); // Frame length - MAC header - IPv4 header
 							// Send the reply
-							net_send(tosend, retval);
+							net_send(tosend, recv_packet_len);
 						}
 					}
 					else if (rx_icmp->type == ICMP_ECHO_REPLY)
@@ -369,9 +369,9 @@ int main(int argc, char *argv[])
 						tx_tcp->window = rx_tcp->window;
 						tx_tcp->checksum = 0;
 						tx_tcp->urg_pointer = rx_tcp->urg_pointer;
-						tx_tcp->checksum = checksum_tcp(&tosend[34], retval-34, PROTOCOL_IP_TCP, retval-34);
+						tx_tcp->checksum = checksum_tcp(&tosend[34], recv_packet_len-34, PROTOCOL_IP_TCP, recv_packet_len-34);
 						// Send the reply
-						net_send(tosend, retval);
+						net_send(tosend, recv_packet_len);
 					}
 					else if (rx_tcp->flags == TCP_ACK)
 					{
@@ -403,7 +403,7 @@ int main(int argc, char *argv[])
 						tx_tcp->src_port = rx_tcp->dest_port;
 						tx_tcp->dest_port = rx_tcp->src_port;
 						tx_tcp->seqnum = rx_tcp->seqnum;
-						tx_tcp->acknum = swap32(swap32(rx_tcp->seqnum)+(retval-14-20-32)); // Add the bytes received
+						tx_tcp->acknum = swap32(swap32(rx_tcp->seqnum)+(recv_packet_len-14-20-32)); // Add the bytes received
 						tx_tcp->data_offset = rx_tcp->data_offset;
 						tx_tcp->flags = TCP_ACK;
 						tx_tcp->window = rx_tcp->window;

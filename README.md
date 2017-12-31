@@ -47,7 +47,7 @@ BareMetal (standalone - it uses hardcoded addresses, no arguments):
 Why
 --------
 
-If this can be done in Phython (see [teeceepee](https://github.com/jvns/teeceepee) and its [blog post](http://jvns.ca/blog/2014/08/12/what-happens-if-you-write-a-tcp-stack-in-python/)), then it can be done in C!
+If this can be done in Python (see [teeceepee](https://github.com/jvns/teeceepee) and its [blog post](http://jvns.ca/blog/2014/08/12/what-happens-if-you-write-a-tcp-stack-in-python/)), then it can be done in C!
 
 Also, its a great proof of concept to learn the fundamentals in preparation for an x86-64 assembly re-write I plan on doing in the future.
 

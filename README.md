@@ -1,3 +1,5 @@
+# This project has been archived and marked as read-only. minIP is now hosted on [GitLab](https://gitlab.com/IanSeyler/minIP).
+
 minIP
 ========
 

@@ -655,7 +655,7 @@ int net_exit()
 int net_send(unsigned char* data, unsigned int bytes)
 {
 	#if defined(BAREMETAL)
-	b_ethernet_tx(data, bytes, 0);
+	b_net_tx(data, bytes, 0);
 	return bytes;
 	#else
 	return (sendto(s, data, bytes, 0, (struct sockaddr *)&sa, sizeof (sa)));
@@ -669,7 +669,7 @@ int net_send(unsigned char* data, unsigned int bytes)
 int net_recv(unsigned char* data)
 {
 	#if defined(BAREMETAL)
-	return b_ethernet_rx(data, 0);
+	return b_net_rx(data, 0);
 	#else
 	return (recvfrom(s, data, ETH_FRAME_LEN, 0, 0, 0));
 	#endif

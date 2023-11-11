@@ -90,7 +90,7 @@ unsigned char tosend[ETH_FRAME_LEN];
 int s; // Socket variable
 int running = 1, c, recv_packet_len;
 unsigned int tint, tint0, tint1, tint2, tint3;
-#if !defined(BAREMETAL) && !defined(BAREMETAL_STANDALONE)
+#if !defined(BAREMETAL)
 struct sockaddr_ll sa;
 struct ifreq ifr;
 #endif
@@ -170,7 +170,7 @@ const char webpage[] =
 "<html>\n"
 "\t<head>\n"
 "\t\t<title>minIP</title>\n"
-"\t\t<link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css\">\n"
+"\t\t<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\">\n"
 "\t\t<link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>\n"
 "\t\t<style>\n"
 "\t\t\tbody, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {\n"
@@ -181,7 +181,7 @@ const char webpage[] =
 "\t</head>\n"
 "\t<body>\n"
 "\t\t<div class=\"container\">\n"
-"\t\t<p />\n"
+"\t\t\t<p />\n"
 "\t\t\t<h1>Hello, from minIP!</h1>\n"
 "\t\t\t<h3><a href=\"https://github.com/IanSeyler/minIP/\">minIP on GitHub</a></h3>\n"
 "\t\t\t<p>minIP is a very tiny TCP/IP stack implementation in C.</p>\n"
@@ -190,6 +190,12 @@ const char webpage[] =
 "\t</body>\n"
 "</html>\n";
 const char version_string[] = "minIP v0.7.0 (2023 11 11)\n";
+#if defined(BAREMETAL)
+const char arp[] = "arp\n";
+const char ipv4[] = "ipv4\n";
+const char ping[] = "ping\n";
+
+#endif
 
 /* Main code */
 #if defined(BAREMETAL)
@@ -265,13 +271,16 @@ int main(int argc, char *argv[])
 				arp_packet* rx_arp = (arp_packet*)buffer;
 				if (swap16(rx_arp->opcode) == ARP_REQUEST)
 				{
+					#if defined(BAREMETAL)
+					b_output(arp, (unsigned long)strlen(arp));
+					#endif
 					#if defined(LINUX)
 					printf("ARP Request - Who is %d.%d.%d.%d? Tell %d.%d.%d.%d\n", buffer[38], buffer[39], buffer[40], buffer[41], buffer[28], buffer[29], buffer[30], buffer[31]);
 					#endif
 					if (*(u32*)rx_arp->target_ip == *(u32*)src_IP)
 					{
 						#if defined(LINUX)
-						printf("ARP Request - Sending Response\n");
+						printf("ARP Response - Sent\n");
 						#endif
 						arp_packet* tx_arp = (arp_packet*)tosend;
 						// Ethernet
@@ -307,6 +316,9 @@ int main(int argc, char *argv[])
 					{
 						if (*(u32*)rx_icmp->ipv4.dest_ip == *(u32*)src_IP)
 						{
+							#if defined(BAREMETAL)
+							b_output(ping, (unsigned long)strlen(ping));
+							#endif
 							#if defined(LINUX)
 							printf("Ping Request from %d.%d.%d.%d. Sending response.\n", buffer[30], buffer[31], buffer[32], buffer[33]);
 							#endif

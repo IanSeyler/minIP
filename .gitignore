@@ -1,3 +1,10 @@
+# Libraries
+libBareMetal.c
+libBareMetal.h
+
+# macOS
+.DS_Store
+
 # Object files
 *.o
 *.ko

@@ -4,25 +4,19 @@
 // Linux compile: gcc minIP.c -o minIP
 // Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
 
-// BareMetal compile (with newlib):
-// gcc -I newlib-2.4.0/newlib/libc/include/ -c minIP.c -o minIP.o -DBAREMETAL
-// ld -T app.ld -o minIP.app crt0.o minIP.o libc.a libBareMetal.o
-
-// BareMetal compile (standalone):
-// ./build.sh
+// BareMetal compile: ./build.sh
+// BareMetal usage: minIP.app
 
 #define __USE_MISC
 
 /* Global Includes */
-#if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
+#if defined(BAREMETAL)
 #include "libBareMetal.h"
 #endif
-#if defined(BAREMETAL) || defined(LINUX)
+#if defined(LINUX)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#endif
-#if defined(LINUX)
 #include <unistd.h>
 #include <netinet/in.h>
 #include <net/if.h>
@@ -33,7 +27,7 @@
 #endif
 
 /* Typedefs */
-#if defined(BAREMETAL_STANDALONE)
+#if defined(BAREMETAL)
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -48,16 +42,20 @@ typedef uint64_t u64;
 /* Global functions */
 u16 checksum(u8* data, u16 bytes);
 u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length);
+#if defined(BAREMETAL)
+int net_init();
+#else
 int net_init(char *interface);
+#endif
 int net_exit();
 int net_send(unsigned char* data, unsigned int bytes);
 int net_recv(unsigned char* data);
 u16 swap16(u16 in);
 u32 swap32(u32 in);
-#if defined(BAREMETAL_STANDALONE)
-void* memset( void* s, int c, int n );
-void* memcpy( void* d, const void* s, int n );
-int strlen( const char* s );
+#if defined(BAREMETAL)
+void* memset(void* s, int c, int n);
+void* memcpy(void* d, const void* s, int n);
+int strlen(const char* s);
 #endif
 
 /* Global defines */
@@ -172,8 +170,8 @@ const char webpage[] =
 "<html>\n"
 "\t<head>\n"
 "\t\t<title>minIP</title>\n"
-"\t\t<link rel=\"stylesheet\" href=\"http://netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css\">\n"
-"\t\t<link href='http://fonts.googleapis.com/css?family=Roboto:300' rel='stylesheet' type='text/css'>\n"
+"\t\t<link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css\">\n"
+"\t\t<link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>\n"
 "\t\t<style>\n"
 "\t\t\tbody, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {\n"
 "\t\t\t\tfont-family: \"Avenir Next\", \"Roboto\", sans-serif;\n"
@@ -183,32 +181,38 @@ const char webpage[] =
 "\t</head>\n"
 "\t<body>\n"
 "\t\t<div class=\"container\">\n"
+"\t\t<p />\n"
 "\t\t\t<h1>Hello, from minIP!</h1>\n"
 "\t\t\t<h3><a href=\"https://github.com/IanSeyler/minIP/\">minIP on GitHub</a></h3>\n"
-"\t\t\t<p>minIP is a tiny TCP/IP stack implementation in C.</p>\n"
+"\t\t\t<p>minIP is a very tiny TCP/IP stack implementation in C.</p>\n"
 "\t\t\t<p>It cointains just enough code to serve this webpage.</p>\n"
 "\t\t</div>\n"
 "\t</body>\n"
 "</html>\n";
-const char version_string[] = "minIP v0.5.1 (2017 10 07)\n";
+const char version_string[] = "minIP v0.7.0 (2023 11 11)\n";
 
 /* Main code */
+#if defined(BAREMETAL)
+int main()
+#else
 int main(int argc, char *argv[])
+#endif
 {
-	#if defined(BAREMETAL_STANDALONE)
-	b_output(version_string);
-	src_IP[0] = 10;
-	src_IP[1] = 0;
-	src_IP[2] = 0;
-	src_IP[3] = 10;
+	#if defined(BAREMETAL)
+	b_output(version_string, (unsigned long)strlen(version_string));
+	src_IP[0] = 192;
+	src_IP[1] = 168;
+	src_IP[2] = 4;
+	src_IP[3] = 250;
 	src_SN[0] = 255;
 	src_SN[1] = 255;
 	src_SN[2] = 255;
 	src_SN[3] = 0;
-	src_GW[0] = 10;
-	src_GW[1] = 0;
-	src_GW[2] = 0;
+	src_GW[0] = 192;
+	src_GW[1] = 168;
+	src_GW[2] = 4;
 	src_GW[3] = 1;
+	net_init();
 	#else
 	printf(version_string);
 
@@ -237,13 +241,16 @@ int main(int argc, char *argv[])
 	src_GW[2] = tint2;
 	src_GW[3] = tint3;
 
+	net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
+
+	printf("\n");
 	printf("This host:\n");
 	printf("HW: %02X:%02X:%02X:%02X:%02X:%02X\n", src_MAC[0], src_MAC[1], src_MAC[2], src_MAC[3], src_MAC[4], src_MAC[5]);
 	printf("IP: %u.%u.%u.%u\n", src_IP[0], src_IP[1], src_IP[2], src_IP[3]);
 	printf("SN: %u.%u.%u.%u\n", src_SN[0], src_SN[1], src_SN[2], src_SN[3]);
+	printf("GW: %u.%u.%u.%u\n", src_GW[0], src_GW[1], src_GW[2], src_GW[3]);
+	printf("\n");
 	#endif
-
-	net_init(argv[1]); // Get us a socket that can handle raw Ethernet frames
 
 	while(running == 1)
 	{
@@ -258,9 +265,14 @@ int main(int argc, char *argv[])
 				arp_packet* rx_arp = (arp_packet*)buffer;
 				if (swap16(rx_arp->opcode) == ARP_REQUEST)
 				{
-			//		printf("ARP Request - Who is %d.%d.%d.%d? Tell %d.%d.%d.%d", buffer[38], buffer[39], buffer[40], buffer[41], buffer[28], buffer[29], buffer[30], buffer[31]);
+					#if defined(LINUX)
+					printf("ARP Request - Who is %d.%d.%d.%d? Tell %d.%d.%d.%d\n", buffer[38], buffer[39], buffer[40], buffer[41], buffer[28], buffer[29], buffer[30], buffer[31]);
+					#endif
 					if (*(u32*)rx_arp->target_ip == *(u32*)src_IP)
 					{
+						#if defined(LINUX)
+						printf("ARP Request - Sending Response\n");
+						#endif
 						arp_packet* tx_arp = (arp_packet*)tosend;
 						// Ethernet
 						memcpy(tx_arp->ethernet.dest_mac, rx_arp->sender_mac, 6);
@@ -295,6 +307,9 @@ int main(int argc, char *argv[])
 					{
 						if (*(u32*)rx_icmp->ipv4.dest_ip == *(u32*)src_IP)
 						{
+							#if defined(LINUX)
+							printf("Ping Request from %d.%d.%d.%d. Sending response.\n", buffer[30], buffer[31], buffer[32], buffer[33]);
+							#endif
 							// Reply to the ping request
 							icmp_packet* tx_icmp = (icmp_packet*)tosend;
 							// Ethernet
@@ -309,7 +324,7 @@ int main(int argc, char *argv[])
 							tx_icmp->ipv4.flags = rx_icmp->ipv4.flags;
 							tx_icmp->ipv4.ttl = rx_icmp->ipv4.ttl;
 							tx_icmp->ipv4.protocol = rx_icmp->ipv4.protocol;
-							tx_icmp->ipv4.checksum = rx_icmp->ipv4.checksum; // No need to recalc checksum
+							tx_icmp->ipv4.checksum = rx_icmp->ipv4.checksum; // No need to recalculate checksum
 							memcpy(tx_icmp->ipv4.src_ip, rx_icmp->ipv4.dest_ip, 4);
 							memcpy(tx_icmp->ipv4.dest_ip, rx_icmp->ipv4.src_ip, 4);
 							// ICMP
@@ -484,8 +499,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	#if defined(BAREMETAL_STANDALONE)
-	b_output("\n");
+	#if defined(BAREMETAL)
+	b_output("\n", 1);
 	#else
 	printf("\n");
 	#endif
@@ -494,7 +509,7 @@ int main(int argc, char *argv[])
 }
 
 
-/* checksum - Calulate a checksum value */
+/* checksum - Calculate a checksum value */
 // Returns 16-bit checksum
 u16 checksum(u8* data, u16 bytes)
 {
@@ -514,7 +529,7 @@ u16 checksum(u8* data, u16 bytes)
 }
 
 
-/* checksum_tcp - Calulate a TCP checksum value */
+/* checksum_tcp - Calculate a TCP checksum value */
 // Returns 16-bit checksum
 u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
 {
@@ -540,9 +555,13 @@ u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
 
 
 /* net_init - Initialize a raw socket */
+#if defined(BAREMETAL)
+int net_init()
+#else
 int net_init(char *interface)
+#endif
 {
-	#if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
+	#if defined(BAREMETAL)
 	/* Populate the MAC Address */
 	/* Pulls the MAC from the OS sys var table... so gross */
 	char * os_MAC = (void*)0x110050;
@@ -624,7 +643,7 @@ int net_init(char *interface)
 /* net_exit - Clean up and exit */
 int net_exit()
 {
-	#if !defined(BAREMETAL) && !defined(BAREMETAL_STANDALONE)
+	#if !defined(BAREMETAL)
 	close(s);
 	#endif
 	return 0;
@@ -635,7 +654,7 @@ int net_exit()
 // Returns number of bytes sent
 int net_send(unsigned char* data, unsigned int bytes)
 {
-	#if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
+	#if defined(BAREMETAL)
 	b_ethernet_tx(data, bytes, 0);
 	return bytes;
 	#else
@@ -649,7 +668,7 @@ int net_send(unsigned char* data, unsigned int bytes)
 // Returns number of bytes read
 int net_recv(unsigned char* data)
 {
-	#if defined(BAREMETAL) || defined(BAREMETAL_STANDALONE)
+	#if defined(BAREMETAL)
 	return b_ethernet_rx(data, 0);
 	#else
 	return (recvfrom(s, data, ETH_FRAME_LEN, 0, 0, 0));
@@ -674,42 +693,43 @@ u32 swap32(u32 in)
 	return out;
 }
 
-#ifdef BAREMETAL_STANDALONE
-void* memset( void* s, int c, int n )
+#ifdef BAREMETAL
+void* memset(void* s, int c, int n)
 {
-    char* _src;
+	char* _src;
 
-    _src = ( char* )s;
+	_src = (char*)s;
 
-    while ( n-- ) {
-        *_src++ = c;
-    }
+	while (n--) {
+		*_src++ = c;
+	}
 
-    return s;
+	return s;
 }
 
-void* memcpy( void* d, const void* s, int n )
+void* memcpy(void* d, const void* s, int n)
 {
-    char* dest;
-    char* src;
+	char* dest;
+	char* src;
 
-    dest = ( char* )d;
-    src = ( char* )s;
+	dest = (char*)d;
+	src = (char*)s;
 
-    while ( n-- ) {
-        *dest++ = *src++;
-    }
+	while (n--) {
+		*dest++ = *src++;
+	}
 
-    return d;
+	return d;
 }
 
-int strlen( const char* s )
+int strlen(const char* s)
 {
-    int r = 0;
+	int r = 0;
 
-    for( ; *s++ != 0; r++ ) { }
+	for(; *s++ != 0; r++) { }
 
-    return r;
+	return r;
 }
 #endif
+
 /* EOF */

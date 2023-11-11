@@ -1,5 +1,3 @@
-# This project has been archived and marked as read-only. minIP is now hosted on [GitLab](https://gitlab.com/IanSeyler/minIP).
-
 minIP
 ========
 
@@ -9,10 +7,12 @@ This needs to be run on a Linux machine with root access - ideally on a network 
 
 This also runs on top of the BareMetal exokernel.
 
+
 Goals
 --------
 
 Provide enough of a stack to serve a simple static webpage.
+
 
 Building
 --------
@@ -21,15 +21,12 @@ Linux:
 
 	make
 
-BareMetal (with newlib):
+BareMetal:
 
-	gcc -I PATH_TO_NEWLIB_HEADERS -c minIP.c -o minIP.o -DBAREMETAL
-	gcc -c -m64 -Wall -W -pedantic -fno-builtin -nostdlib -nostartfiles -nodefaultlibs -fomit-frame-pointer -mno-red-zone -o libBareMetal.o libBareMetal.c
-	ld -T app.ld -o minIP.app crt0.o minIP.o libc.a libBareMetal.o
-
-BareMetal (standalone - it uses hardcoded IP addresses)
+This version uses hardcoded IP addresses. Make sure to update them if needed in main().
 
 	./build.sh
+
 
 Usage
 --------
@@ -38,13 +35,10 @@ Linux:
 
 	./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
 
-BareMetal (with newlib):
-
-	minIP.app en0 192.168.0.99 255.255.255.0 192.168.0.1
-
-BareMetal (standalone - it uses hardcoded addresses, no arguments):
+BareMetal:
 
 	minIP.app
+
 
 Why
 --------
@@ -52,6 +46,7 @@ Why
 If this can be done in Python (see [teeceepee](https://github.com/jvns/teeceepee) and its [blog post](http://jvns.ca/blog/2014/08/12/what-happens-if-you-write-a-tcp-stack-in-python/)), then it can be done in C!
 
 Also, its a great proof of concept to learn the fundamentals in preparation for an x86-64 assembly re-write I plan on doing in the future.
+
 
 What works
 --------
@@ -65,6 +60,7 @@ TCP | partially
 UDP | no
 TCPv6 | no
 UDPv6 | no
+
 
 Todo
 --------

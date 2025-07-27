@@ -1,5 +1,4 @@
 /* minIP */
-/* Written by Ian Seyler */
 
 // Linux compile: gcc minIP.c -o minIP
 // Linux usage: ./minIP eth1 192.168.0.99 255.255.255.0 192.168.0.1
@@ -85,14 +84,16 @@ u8 src_IP[4] = {0, 0, 0, 0};
 u8 src_SN[4] = {0, 0, 0, 0};
 u8 src_GW[4] = {0, 0, 0, 0};
 u8 dst_IP[4] = {0, 0, 0, 0};
-unsigned char buffer[ETH_FRAME_LEN];
 unsigned char tosend[ETH_FRAME_LEN];
-int s; // Socket variable
 int running = 1, c, recv_packet_len;
-unsigned int tint, tint0, tint1, tint2, tint3;
+
 #if !defined(BAREMETAL)
+int s; //Socket variable
 struct sockaddr_ll sa;
 struct ifreq ifr;
+unsigned char buffer[ETH_FRAME_LEN];
+#else
+unsigned char *buffer = (unsigned char *)0x11C000;
 #endif
 
 /* Global structs */
@@ -163,38 +164,24 @@ typedef struct tcp_packet {
 /* Default HTTP page with HTTP headers */
 const char webpage[] =
 "HTTP/1.0 200 OK\n"
-"Server: BareMetal (http://www.returninfinity.com)\n"
+"Server: minIP\n"
 "Content-type: text/html\n"
 "\n"
 "<!DOCTYPE html>\n"
 "<html>\n"
 "\t<head>\n"
 "\t\t<title>minIP</title>\n"
-"\t\t<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\">\n"
-"\t\t<link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>\n"
-"\t\t<style>\n"
-"\t\t\tbody, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {\n"
-"\t\t\t\tfont-family: \"Avenir Next\", \"Roboto\", sans-serif;\n"
-"\t\t\t\tline-height: 1.5;\n"
-"\t\t\t}\n"
-"\t\t</style>\n"
 "\t</head>\n"
 "\t<body>\n"
-"\t\t<div class=\"container\">\n"
-"\t\t\t<p />\n"
-"\t\t\t<h1>Hello, from minIP!</h1>\n"
-"\t\t\t<h3><a href=\"https://github.com/IanSeyler/minIP/\">minIP on GitHub</a></h3>\n"
-"\t\t\t<p>minIP is a very tiny TCP/IP stack implementation in C.</p>\n"
-"\t\t\t<p>It cointains just enough code to serve this webpage.</p>\n"
-"\t\t</div>\n"
+"\t\t<h1>Hello world, from minIP!</h1>\n"
 "\t</body>\n"
 "</html>\n";
-const char version_string[] = "minIP v0.7.0 (2023 11 11)\n";
+const char version_string[] = "minIP v0.8.0 (2025 07 27)\n";
 #if defined(BAREMETAL)
 const char arp[] = "arp\n";
 const char ipv4[] = "ipv4\n";
 const char ping[] = "ping\n";
-
+const char dot[] = ".";
 #endif
 
 /* Main code */
@@ -354,20 +341,18 @@ int main(int argc, char *argv[])
 					}
 					else if (rx_icmp->type == ICMP_ECHO_REPLY)
 					{
-			//			printf("Reply");
+						// Ignore these for now.
 					}
 					else
 					{
-			//			printf("Unknown ICMP packet");
+						// Do nothing
 					}
 				}
 				else if(rx_ipv4->protocol == PROTOCOL_IP_TCP)
 				{
-//					printf("TCP");
 					tcp_packet* rx_tcp = (tcp_packet*)buffer;
 					if (rx_tcp->flags == TCP_SYN)
 					{
-//						printf(" - SYN");
 						tcp_packet* tx_tcp = (tcp_packet*)tosend;
 						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
 						// Ethernet
@@ -402,12 +387,10 @@ int main(int argc, char *argv[])
 					}
 					else if (rx_tcp->flags == TCP_ACK)
 					{
-//						printf(" - ACK");
 						// Ignore these for now.
 					}
 					else if (rx_tcp->flags == (TCP_PSH|TCP_ACK))
 					{
-//						printf(" - PSH");
 						tcp_packet* tx_tcp = (tcp_packet*)tosend;
 						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
 						// Ethernet
@@ -460,7 +443,6 @@ int main(int argc, char *argv[])
 					}
 					else if (rx_tcp->flags == (TCP_FIN|TCP_ACK))
 					{
-//						printf(" - FIN");
 						tcp_packet* tx_tcp = (tcp_packet*)tosend;
 						memcpy((void*)tosend, (void*)buffer, ETH_FRAME_LEN); // make a copy of the original frame
 						// Ethernet
@@ -493,7 +475,6 @@ int main(int argc, char *argv[])
 						// Send the reply
 						net_send(tosend, 66);
 					}
-//					printf("\n");
 				}
 				else if (rx_ipv4->protocol == PROTOCOL_IP_UDP)
 				{
@@ -501,7 +482,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
-			//		printf("Unknown protocol");
+					// Do nothing
 				}
 			}
 			else if (swap16(rx->type) == ETHERTYPE_IPv6)
@@ -566,7 +547,7 @@ u16 checksum_tcp(u8* data, u16 bytes, u16 protocol, u16 length)
 }
 
 
-/* net_init - Initialize a raw socket */
+/* net_init */
 #if defined(BAREMETAL)
 int net_init()
 #else
@@ -576,7 +557,7 @@ int net_init(char *interface)
 	#if defined(BAREMETAL)
 	/* Populate the MAC Address */
 	/* Pulls the MAC from the OS sys var table... so gross */
-	char * os_MAC = (void*)0x110050;
+	char * os_MAC = (void*)0x11A008;
 	src_MAC[0] = os_MAC[0];
 	src_MAC[1] = os_MAC[1];
 	src_MAC[2] = os_MAC[2];
@@ -652,7 +633,7 @@ int net_init(char *interface)
 }
 
 
-/* net_exit - Clean up and exit */
+/* net_exit */
 int net_exit()
 {
 	#if !defined(BAREMETAL)
@@ -661,8 +642,9 @@ int net_exit()
 	return 0;
 }
 
+
 /* net_send - Send a raw Ethernet packet */
-// Wrapper for OS send function
+// Wrapper for kernel send function
 // Returns number of bytes sent
 int net_send(unsigned char* data, unsigned int bytes)
 {
@@ -676,7 +658,7 @@ int net_send(unsigned char* data, unsigned int bytes)
 
 
 /* net_recv - Receive a raw Ethernet packet */
-// Wrapper for OS recv function
+// Wrapper for kernel recv function
 // Returns number of bytes read
 int net_recv(unsigned char* data)
 {
